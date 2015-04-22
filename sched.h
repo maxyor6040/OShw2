@@ -454,19 +454,6 @@ struct task_struct {
 /* journalling filesystem info */
 	void *journal_info;
 
-/* number of processes limitation handling */
-/* ~CHANGE~ */
-	int my_proc_limit;
-	//limit I have for the number of descendants
-	//upon no restriction set to -1, which indicates "unlimited".
-
-	int children_proc_limit;
-	//limit I will give to my children.
-	//initially set to -1, which indicates "unlimited".
-
-	int descendants_count;
-	//the number of descendants.
-	//should be updated when a descendant is  born or dead.
 };
 
 /*
