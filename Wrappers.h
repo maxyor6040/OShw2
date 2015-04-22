@@ -77,78 +77,14 @@ int get_scheduling_statistic(struct switch_info *){
 		return (int)(__res);
 }
 
-// sched_setscheduler wrapper
-int sched_setscheduler(struct sched_param*){
-	long __res;
-	__asm__ volatile (
-		"movl $247, %%eax;"		// system call number -> eax
-		"movl %1, %%ebx;"		// sched_param -> ebx		
-		"int $0x80;"			// system call invocation via interrupt 0x80  
-		"movl %%eax,%0"			// copy the value that was returned by the system call to %0 (which is the first output operand).
-		: "=m" (__res)			// output operand
-		: "m" (sched_param)			// input operand 
-		: "%eax","%ebx"			// we use the following registers: eax, ebx 
-		);
-		if ((unsigned long)(__res) >= (unsigned long)(-125)) {
-			errno = -(__res); __res = -1;
-		}
-		return (int)(__res);
-}
 
 
-// sched_getscheduler wrapper
-int sched_getscheduler(struct sched_param*){
-	long __res;
-	__asm__ volatile (
-		"movl $248, %%eax;"		// system call number -> eax
-		"movl %1, %%ebx;"		// sched_param -> ebx		
-		"int $0x80;"			// system call invocation via interrupt 0x80  
-		"movl %%eax,%0"			// copy the value that was returned by the system call to %0 (which is the first output operand).
-		: "=m" (__res)			// output operand
-		: "m" (sched_param)			// input operand 
-		: "%eax","%ebx"			// we use the following registers: eax, ebx 
-		);
-		if ((unsigned long)(__res) >= (unsigned long)(-125)) {
-			errno = -(__res); __res = -1;
-		}
-		return (int)(__res);
-}
 
-// sched_getparam wrapper
-int sched_getparam(struct sched_param*){
-	long __res;
-	__asm__ volatile (
-		"movl $249, %%eax;"		// system call number -> eax
-		"movl %1, %%ebx;"		// sched_param -> ebx		
-		"int $0x80;"			// system call invocation via interrupt 0x80  
-		"movl %%eax,%0"			// copy the value that was returned by the system call to %0 (which is the first output operand).
-		: "=m" (__res)			// output operand
-		: "m" (sched_param)			// input operand 
-		: "%eax","%ebx"			// we use the following registers: eax, ebx 
-		);
-		if ((unsigned long)(__res) >= (unsigned long)(-125)) {
-			errno = -(__res); __res = -1;
-		}
-		return (int)(__res);
-}
 
-// sched_getparam wrapper
-int sched_setparam(struct sched_param*){
-	long __res;
-	__asm__ volatile (
-		"movl $250, %%eax;"		// system call number -> eax
-		"movl %1, %%ebx;"		// sched_param -> ebx		
-		"int $0x80;"			// system call invocation via interrupt 0x80  
-		"movl %%eax,%0"			// copy the value that was returned by the system call to %0 (which is the first output operand).
-		: "=m" (__res)			// output operand
-		: "m" (sched_param)			// input operand 
-		: "%eax","%ebx"			// we use the following registers: eax, ebx 
-		);
-		if ((unsigned long)(__res) >= (unsigned long)(-125)) {
-			errno = -(__res); __res = -1;
-		}
-		return (int)(__res);
-}
+
+
+
+
 
 
 
