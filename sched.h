@@ -122,6 +122,8 @@ extern unsigned long nr_uninterruptible(void);
 
 struct sched_param {
 	int sched_priority;
+	int requested_time;
+	int trial_num;
 };
 
 struct completion;
