@@ -455,6 +455,9 @@ struct task_struct {
 /* journalling filesystem info */
 	void *journal_info;
 
+	//WET2
+	u64 requested_time;
+	int number_of_trials;
 };
 
 /*
