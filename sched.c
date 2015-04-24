@@ -144,7 +144,7 @@ struct runqueue {
 	list_t migration_queue;
 
 	//WET2
-	prio_array_t *short;
+	prio_array_t *short_processes;
 	list_t overdue_queue;
 } ____cacheline_aligned;
 
@@ -283,6 +283,7 @@ static inline void deactivate_task(struct task_struct *p, runqueue_t *rq)
 	rq->nr_running--;
 	if (p->state == TASK_UNINTERRUPTIBLE)
 		rq->nr_uninterruptible++;
+
 	dequeue_task(p, p->array);
 	p->array = NULL;
 }
@@ -1657,11 +1658,11 @@ void __init sched_init(void)
 		}
 		//WET2
 		for (k = 0; k < MAX_PRIO; k++) {
-			INIT_LIST_HEAD(rq->short->queue + k);
-			__clear_bit(k, rq->short->bitmap);
+			INIT_LIST_HEAD(rq->short_processes->queue + k);
+			__clear_bit(k, rq->short_processes->bitmap);
 		}
 		// delimiter for bitsearch
-		__set_bit(MAX_PRIO, rq->short->bitmap);
+		__set_bit(MAX_PRIO, rq->short_processes->bitmap);
 
 
 		INIT_LIST_HEAD(&rq->overdue_queue);
