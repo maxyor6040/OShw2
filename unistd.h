@@ -249,7 +249,7 @@
 #define __NR_sched_getaffinity	242
 #define __NR_is_SHORT		    243
 #define __NR_remaining_time   	244
-#define __NR_remaining_trails   245
+#define __NR_remaining_trials   245
 #define __NR_get_scheduling_statistic     	246
 
 

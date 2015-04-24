@@ -41,8 +41,8 @@ int remaining_time(int pid){
 		return (int)(__res);
 }
 
-// remaining_trails wrapper
-int remaining_trails(int pid){
+// remaining_trials wrapper
+int remaining_trials(int pid){
 	long __res;
 	__asm__ volatile (
 		"movl $245, %%eax;"		// system call number -> eax
