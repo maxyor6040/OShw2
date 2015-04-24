@@ -1186,7 +1186,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	if ((policy == SCHED_SHORT) != (lp.sched_priority == 0))
 		goto out_unlock;
-
+	
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1194,7 +1194,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
-
+	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER){
+		goto out_unlock;
+	}
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
