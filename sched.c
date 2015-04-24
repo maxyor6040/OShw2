@@ -112,6 +112,8 @@
 #define TASK_TIMESLICE(p) (MIN_TIMESLICE + \
 	((MAX_TIMESLICE - MIN_TIMESLICE) * (MAX_PRIO-1-(p)->static_prio)/39))
 
+   
+	
 /*
  * These are the runqueue data structures:
  */
