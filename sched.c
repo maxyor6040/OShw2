@@ -1194,6 +1194,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
+	if (p->policy == SCHED_OVERDUE_SHORT) {
+		goto out_unlock;
+	}
 	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER){
 		goto out_unlock;
 	}
