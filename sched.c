@@ -1138,6 +1138,7 @@ static inline task_t *find_process_by_pid(pid_t pid)
 	return pid ? find_task_by_pid(pid) : current;
 }
 
+
 static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 {
 	struct sched_param lp;
@@ -1201,12 +1202,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
 	/* CHANGES - VALID POLICY CHANGES CONDITIONS */
-	// checking if the relevant process policy is OVERDUE_SHORT. if so, we can't change policy
-	if (p->policy == SCHED_OVERDUE_SHORT && policy != SCHED_OVERDUE_SHORT) {
+	// if the process is short_overdue then don't change policy 
+	if (is_process_short_overdue(p, rq)) {
 		goto out_unlock;
 	}
 	// if the relevant process' policy is SCHED_SHORT we can change it to SHORT or OVERDUE_SHORT
-	if ((p->policy == SCHED_SHORT) && (policy != SCHED_SHORT && policy != SCHED_OVERDUE_SHORT)){
+	if (p->policy == SCHED_SHORT && policy != SCHED_SHORT){
 		goto out_unlock;
 	}
 	// if we're trying to change the policy to short from anything else than OTHER, it's wrong 
