@@ -1184,9 +1184,10 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0))
 		goto out_unlock;
+	/* CHANGE - CHECKING sched_priority is valid to a SHORT process*/	
 	if ((policy == SCHED_SHORT) != (lp.sched_priority == 0))
 		goto out_unlock;
-	
+	/* END OF CHANGE */ 
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1196,7 +1197,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	/* CHANGES - VALID POLICY CHANGES CONDITIONS */
 	// checking if the relevant process policy is OVERDUE_SHORT. if so, we can't change policy
-	if (p->policy == SCHED_OVERDUE_SHORT) {
+	if (p->policy == SCHED_OVERDUE_SHORT && policy != SCHED_OVERDUE_SHORT) {
 		goto out_unlock;
 	}
 	// if the relevant process' policy is SCHED_SHORT we can change it to SHORT or OVERDUE_SHORT
@@ -1207,7 +1208,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER){
 		goto out_unlock;
 	}
-	/* END OF CHANGES* 
+	/* END OF CHANGES */ 
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
