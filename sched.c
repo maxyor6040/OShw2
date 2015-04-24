@@ -1219,6 +1219,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		deactivate_task(p, task_rq(p));
 	retval = 0;
 	p->policy = policy;
+	if (policy == SCHED_SHORT) {
+	p->array = task_rq(p)->short_processes;
+	}
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
 	p->number_of_trials	= lp.trial_num;
