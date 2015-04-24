@@ -1534,6 +1534,7 @@ out_nounlock:
 //WET2 CHANGE beginning
 asmlinkage int sys_is_SHORT(int pid) {
 	task_t *p;
+	p = find_process_by_pid(pid);
 	runqueue_t *rq;
 	rq = this_rq();
 
