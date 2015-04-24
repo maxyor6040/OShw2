@@ -266,8 +266,9 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	if (p->policy == SCHED_SHORT){
 		array = rq->short_processes;
 	}
-	array = rq->active;
-
+	else {
+		array = rq->active;
+	}
 	if (!rt_task(p) && sleep_time) {
 		/*
 		 * This code gives a bonus to interactive tasks. We update
