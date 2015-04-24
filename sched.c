@@ -1194,12 +1194,20 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
+	/* CHANGES - VALID POLICY CHANGES CONDITIONS */
+	// checking if the relevant process policy is OVERDUE_SHORT. if so, we can't change policy
 	if (p->policy == SCHED_OVERDUE_SHORT) {
 		goto out_unlock;
 	}
+	// if the relevant process' policy is SCHED_SHORT we can change it to SHORT or OVERDUE_SHORT
+	if ((p->policy == SCHED_SHORT) && (policy != SCHED_SHORT && policy != SCHED_OVERDUE_SHORT)){
+		goto out_unlock;
+	}
+	// if we're trying to change the policy to short from anything else than OTHER, it's wrong 
 	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER){
 		goto out_unlock;
 	}
+	/* END OF CHANGES* 
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
