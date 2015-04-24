@@ -458,6 +458,7 @@ struct task_struct {
 	//WET2
 	u64 requested_time;
 	int number_of_trials;
+	int number_of_trials_left;
 };
 
 /*
