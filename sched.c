@@ -148,6 +148,9 @@ struct runqueue {
 	//WET2
 	prio_array_t *short_processes;
 	list_t overdue_queue;
+
+	int number_of_short_processes;
+	int number_of_short_processes_over_due;
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
@@ -258,8 +261,10 @@ static inline int effective_prio(task_t *p)
 	return prio;
 }
 
+//WET2
 static inline int is_process_short_overdue(task_t *p, runqueue_t *rq)
 {return p->run_list == rq->overdue_queue;}
+//END WET2
 
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
@@ -304,7 +309,7 @@ void handle_short_task_deactivation(struct task_struct *p, runqueue_t *rq)
 		return;
 	}
 	if(p->time_slice == 0){  // if the process finished it's time-slice
-		if(p->number_of_trials == 0) // if the process is out of trials
+		if(--p->number_of_trials_left == 0) // if the process is out of trials
 		{
 			dequeue_task(p, p->array);
 			p->run_list = rq->overdue_queue;
@@ -325,19 +330,20 @@ void handle_short_task_deactivation(struct task_struct *p, runqueue_t *rq)
 //END WET2
 static inline void deactivate_task(struct task_struct *p, runqueue_t *rq)
 {
+	rq->nr_running--;
+	if (p->state == TASK_UNINTERRUPTIBLE)
+		rq->nr_uninterruptible++;
+
 	//WET2
 	if(is_process_short_overdue(p, rq))// if this process is short_overdue
 	{
 		list_del(&p->run_list);
 		list_add_tail(&p->run_list, rq->overdue_queue);
 	}
+	else{
+		dequeue_task(p, p->array);
+	}
 	//END WET2
-
-	rq->nr_running--;
-	if (p->state == TASK_UNINTERRUPTIBLE)
-		rq->nr_uninterruptible++;
-
-	dequeue_task(p, p->array);
 	p->array = NULL;
 }
 
@@ -900,6 +906,20 @@ pick_next_task:
 		goto switch_tasks;
 	}
 
+	//WET2
+	idx = sched_find_first_bit(array->bitmap);
+	if(idx > MAX_RT_PRIO)// if there are no RT processes, which is when we want SCHED_SHORT processes to run
+	{
+		if(rq->number_of_short_processes > 0)
+		{
+			array = rq->short_processes;
+			idx = sched_find_first_bit(array->bitmap);
+			queue = array->queue + idx;
+			next = list_entry(queue->next, task_t, run_list);
+		}
+	}else{
+
+	}
 	array = rq->active;
 	if (unlikely(!array->nr_active)) {
 		/*
