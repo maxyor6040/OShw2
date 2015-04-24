@@ -287,39 +287,49 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	enqueue_task(p, array);
 	rq->nr_running++;
 }
-
-static inline void deactivate_task(struct task_struct *p, runqueue_t *rq)
+//WET2
+void handle_short_task_deactivation(struct task_struct *p, runqueue_t *rq)
 {
-	//WET2
-	if(p->policy == SCHED_SHORT)// if we came here with a short process
+	if(is_process_short_overdue(p, rq))// if this process is short_overdue
 	{
-		if(is_process_short_overdue(p, rq))// if this process is short_overdue
+		if(p->time_slice == 0)// if the process finished it's time-slice
 		{
-			if(p->time_slice == 0)//if the process finished it's time-slice
-			{
-
-			}
-			return;
+			list_del(&p->run_list);
+			list_add_tail(&p->run_list, rq->overdue_queue);
 		}
-		if(p->time_slice == 0){  //if the process finished it's time-slice
-			if(--p->number_of_trials == 0) // if the process is out of trials
-			{
-				dequeue_task(p, p->array);
-				p->run_list = rq->overdue_queue;
-				list_add_tail(&p->run_list, rq->overdue_queue);
-				p->array = NULL;
-			}
-			else //if the process isn't out of trials
-			{
-				dequeue_task(p, p->array);
-				enqueue_task(p, p->array);
-			}
-		}
-		else // if the process didn't finish it's time slice
+		else
 		{
 			//I don't think there's anything we need to do in this case
 		}
 		return;
+	}
+	if(p->time_slice == 0){  // if the process finished it's time-slice
+		if(p->number_of_trials == 0) // if the process is out of trials
+		{
+			dequeue_task(p, p->array);
+			p->run_list = rq->overdue_queue;
+			list_add_tail(&p->run_list, rq->overdue_queue);
+			p->array = NULL;
+		}
+		else // if the process isn't out of trials
+		{
+			dequeue_task(p, p->array);
+			enqueue_task(p, p->array);
+		}
+	}
+	else // if the process didn't finish it's time slice
+	{
+		//I don't think there's anything we need to do in this case
+	}
+}
+//END WET2
+static inline void deactivate_task(struct task_struct *p, runqueue_t *rq)
+{
+	//WET2
+	if(is_process_short_overdue(p, rq))// if this process is short_overdue
+	{
+		list_del(&p->run_list);
+		list_add_tail(&p->run_list, rq->overdue_queue);
 	}
 	//END WET2
 
