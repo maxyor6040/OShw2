@@ -1291,7 +1291,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->policy = policy;
 	if (policy == SCHED_SHORT) {
 		p->array = task_rq(p)->short_processes;
-		p->time_slice = lp.requested_time / lp.trial_num;
+		p->time_slice = lp.requested_time;
 	}
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
