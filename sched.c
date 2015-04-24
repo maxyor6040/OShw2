@@ -1641,6 +1641,17 @@ void __init sched_init(void)
 			// delimiter for bitsearch
 			__set_bit(MAX_PRIO, array->bitmap);
 		}
+		//WET2
+		for (k = 0; k < MAX_PRIO; k++) {
+			INIT_LIST_HEAD(rq->short->queue + k);
+			__clear_bit(k, rq->short->bitmap);
+		}
+		// delimiter for bitsearch
+		__set_bit(MAX_PRIO, rq->short->bitmap);
+
+
+		INIT_LIST_HEAD(&rq->overdue_queue);
+		//END WET2
 	}
 	/*
 	 * We have to do a little magic to get the first
