@@ -255,6 +255,11 @@ static inline int effective_prio(task_t *p)
 		prio = MAX_PRIO-1;
 	return prio;
 }
+static inline int is_process_short_overdue(task_t *p, runqueue_t *rq)
+{
+	return p->run_list == rq->overdue_queue;
+}
+
 
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
