@@ -1542,6 +1542,12 @@ out_nounlock:
 }
 
 //WET2 CHANGE beginning
+
+/* if no such process return -ESRCH
+ * if not SHORT return -EINVAL
+ * if OVERDUE return 0
+ * if SHORT but not OVERDUE return 1
+ * */
 asmlinkage int sys_is_SHORT(int pid) {
 	task_t *p;
 	p = find_process_by_pid(pid);
@@ -1558,6 +1564,13 @@ asmlinkage int sys_is_SHORT(int pid) {
 		return 0;
 	}
 	return 1;//SHORT but not OVERDUE
+}
+
+
+//same as sys_is_SHORT but if SHORT but not OVERDUE return "number_of_trials_left"
+asmlinkage int remaining_trials(int pid){
+	int retval = sys_is_SHORT(pid);
+	return ((retval==1) ? (p->number_of_trials_left) : (retval));
 }
 //WET2 CHANGE end
 
