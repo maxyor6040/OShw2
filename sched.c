@@ -1280,7 +1280,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	}
 	// if we're trying to change the policy to short from anything else than OTHER, it's wrong 
-	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER){
+	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER && p-policy != SCHED_SHORT){
 		goto out_unlock;
 	}
 	/* END OF CHANGES */ 
