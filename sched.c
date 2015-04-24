@@ -255,16 +255,15 @@ static inline int effective_prio(task_t *p)
 		prio = MAX_PRIO-1;
 	return prio;
 }
-static inline int is_process_short_overdue(task_t *p, runqueue_t *rq)
-{
-	return p->run_list == rq->overdue_queue;
-}
-
 
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
-	prio_array_t *array = rq->active;
+	prio_array_t *array;
+	if (p->policy == SCHED_SHORT){
+		array = rq->short_processes;
+	}
+	array = rq->active;
 
 	if (!rt_task(p) && sleep_time) {
 		/*
@@ -1220,7 +1219,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		deactivate_task(p, task_rq(p));
 	retval = 0;
 	p->policy = policy;
+	if (policy == SCHED_SHORT) {
+		p->array = task_rq(p)->short_processes;
+	}
 	p->rt_priority = lp.sched_priority;
+	p->requested_time = lp.requested_time;
+	p->number_of_trials	= lp.trial_num;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
 	else
