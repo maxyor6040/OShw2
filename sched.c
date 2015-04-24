@@ -858,6 +858,13 @@ out:
 
 void scheduling_functions_start_here(void) { }
 
+//WET2
+static inline int only_SHORT_OVERDUE_processes_left(runqueue_t *rq)
+{return !(rq->nr_running - rq->number_of_short_processes_over_due);}
+static inline int no_RT_processes(runqueue_t *rq)
+{return sched_find_first_bit(rq->active->bitmap) > MAX_RT_PRIO;}
+//END WET2
+
 /*
  * 'schedule()' is the main scheduler function.
  */
@@ -895,6 +902,11 @@ need_resched:
 #if CONFIG_SMP
 pick_next_task:
 #endif
+	//WET2
+	if(only_SHORT_OVERDUE_processes_left(rq)){
+		//TODO:Arye implement the appropriate behavior. FIFO I think.
+	}
+	//END WET2
 	if (unlikely(!rq->nr_running)) {
 #if CONFIG_SMP
 		load_balance(rq, 1);
@@ -907,19 +919,16 @@ pick_next_task:
 	}
 
 	//WET2
-	idx = sched_find_first_bit(array->bitmap);
-	if(idx > MAX_RT_PRIO)// if there are no RT processes, which is when we want SCHED_SHORT processes to run
-	{
-		if(rq->number_of_short_processes > 0)
-		{
-			array = rq->short_processes;
-			idx = sched_find_first_bit(array->bitmap);
+	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
+	if(no_RT_processes(rq)){
+		if(rq->number_of_short_processes > 0){
+			idx = sched_find_first_bit(rq->short_processes->bitmap);
 			queue = array->queue + idx;
 			next = list_entry(queue->next, task_t, run_list);
+			goto switch_tasks;
 		}
-	}else{
-
 	}
+	//END WET2
 	array = rq->active;
 	if (unlikely(!array->nr_active)) {
 		/*
