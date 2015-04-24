@@ -1548,7 +1548,7 @@ out_nounlock:
  * if OVERDUE return 0
  * if SHORT but not OVERDUE return 1
  * */
-asmlinkage int sys_is_SHORT(int pid) {
+int check_is_SHORT_and_not_OVERDUE(int pid){
 	task_t *p;
 	p = find_process_by_pid(pid);
 	runqueue_t *rq;
@@ -1566,12 +1566,23 @@ asmlinkage int sys_is_SHORT(int pid) {
 	return 1;//SHORT but not OVERDUE
 }
 
+//same as check_is_SHORT_and_not_OVERDUE
+asmlinkage int sys_is_SHORT(int pid) {
+	return check_is_SHORT_and_not_OVERDUE(pid);
+}
 
-//same as sys_is_SHORT but if SHORT but not OVERDUE return "number_of_trials_left"
+//same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "time_slice"
+asmlinkage int remaining_time(int pid){
+	int retval = check_is_SHORT_and_not_OVERDUE(pid);
+	return ((retval==1) ? (p->time_slice) : (retval));
+}
+
+//same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "number_of_trials_left"
 asmlinkage int remaining_trials(int pid){
-	int retval = sys_is_SHORT(pid);
+	int retval = check_is_SHORT_and_not_OVERDUE(pid);
 	return ((retval==1) ? (p->number_of_trials_left) : (retval));
 }
+
 //WET2 CHANGE end
 
 static void show_task(task_t * p)
