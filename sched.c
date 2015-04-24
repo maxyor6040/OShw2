@@ -1531,6 +1531,25 @@ out_nounlock:
 	return retval;
 }
 
+//WET2 CHANGE beginning
+asmlinkage int sys_is_SHORT(int pid) {
+	task_t *p;
+	runqueue_t *rq;
+	rq = this_rq();
+
+	if (!p) {//if no such process
+		return -ESRCH;
+	}
+	if (p->policy != SCHED_SHORT) {//if not SHORT
+		return -EINVAL;
+	}
+	if (is_process_short_overdue(p, rq)) {//if OVERDUE
+		return 0;
+	}
+	return 1;//SHORT but not OVERDUE
+}
+//WET2 CHANGE end
+
 static void show_task(task_t * p)
 {
 	unsigned long free = 0;
