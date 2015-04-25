@@ -796,7 +796,14 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 			p->number_of_trials_left = ( (p->p_pptr->number_of_trials) / 2 );
 			p->p_pptr->number_of_trials = p->number_of_trials;
 			p->p_pptr->number_of_trials_left = p->number_of_trials_left;
-			enqueue_task(p, p->p_pptr->array);
+			if (p->requested_time == 0){
+				// if after the requested time change the father and son became overdue 
+				list_add_tail(&p->run_list, rq->overdue_queue);
+				list_add_tail(&p->p_ptr->run_list, rq->overdue_queue);	
+			}
+			else {
+				enqueue_task(p, p->p_pptr->array);
+			}	
 		}	
 	// END OF WET2	
 			
