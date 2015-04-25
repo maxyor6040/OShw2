@@ -575,6 +575,13 @@ static inline void copy_flags(unsigned long clone_flags, struct task_struct *p)
 	p->flags = new_flags;
 }
 
+// WET2  
+static inline int is_short_overdue(task_t *p, runqueue_t *rq)
+{return p->run_list == rq->overdue_queue;}
+//END WET2
+
+
+
 /*
  *  Ok, this is the main fork-routine. It copies the system process
  * information (task[nr]) and sets up the necessary registers. It also
