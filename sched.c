@@ -151,6 +151,19 @@ struct runqueue {
 
 	int number_of_short_processes;
 	int number_of_short_processes_over_due;
+
+	//WET2 CHANGE beginning
+
+	//statistics_ring_buffer hold up to 150 Switch_Info's
+	Switch_Info statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE];
+
+	/*write_statistics_count(mod 150) "points" to the next cell for writing
+	 *first_statistics_index points to the oldest stats in the buffer
+	 *switch_count counts the switches from the last created/ended process (up to 30).*/
+	int first_statistics_index, write_statistics_count, switch_count;
+
+	//WET2 CHANGE end
+
 } ____cacheline_aligned;
 
 static struct runqueue runqueues[NR_CPUS] __cacheline_aligned;
@@ -1623,6 +1636,43 @@ asmlinkage int remaining_trials(int pid){
 	return ((retval==1) ? (p->number_of_trials_left) : (retval));
 }
 
+//writes all statistics to "si" address in USER MODE memory
+asmlinkage int sys_get_scheduling_statistic(struct switch_info* si){
+	runqueue_t *rq;
+	rq=this_rq();
+	int first = rq->first_statistics_index;
+	Switch_Info* buffer = rq->statistics_ring_buffer;
+	int fails;
+	if(write_statistics_count < STATISTICS_RING_BUFFER_SIZE){
+		fails = copy_to_user(si, buffer, write_statistics_count * sizeof(switch_info));
+	}else{
+		fails = copy_to_user(si, &buffer[first], (STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info));
+		fails += copy_to_user(si+(STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info)), buffer, first * sizeof(switch_info));
+	}
+	return write_statistics_count - (fails/sizeof(switch_info));//how many were successfully copied
+}
+//enter statistics of new switch (if switch_count<30)
+void add_to_statistics_buffer(switch_info* si){
+	runqueue_t *rq;
+	rq=this_rq();
+	if(rq->switch_count>=30){//no need to add to buffer
+		return;
+	}
+	rq->switch_count++;//count switch
+	rq->statistics_ring_buffer[write_statistics_count % STATISTICS_RING_BUFFER_SIZE] = *si;//write to buffer
+	if((rq->write_statistics_count % STATISTICS_RING_BUFFER_SIZE) == rq->first_statistics_index){//if we override the beginning
+		rq->first_statistics_index = (rq->first_statistics_index + 1) % STATISTICS_RING_BUFFER_SIZE;//first_index "points" to the next cell (current first)
+	}
+	rq->write_statistics_count++;//write_statistics_count(mod 150) "points" to the next cell for writing
+}
+
+//set switch_count to 0
+void reset_switch_count(){
+	runqueue_t *rq;
+	rq = this_rq();
+	rq->switch_count = 0;
+}
+
 //WET2 CHANGE end
 
 static void show_task(task_t * p)
@@ -1811,6 +1861,12 @@ void __init sched_init(void)
 
 		INIT_LIST_HEAD(&rq->overdue_queue);
 		//END WET2
+		
+		//WET2 CHANGE beginning
+		rq->first_statistics_index = 0;
+		rq->write_statistics_count = 0;
+		rq->switch_count = 0;
+		//WET2 CHANGE end
 	}
 	/*
 	 * We have to do a little magic to get the first
