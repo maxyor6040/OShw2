@@ -270,12 +270,15 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
 	prio_array_t *array;
-	if (p->policy == SCHED_SHORT){
+	// WET2
+	if (p->policy == SCHED_SHORT && !is_process_short_overdue(p,rq)){
 		array = rq->short_processes;
 	}
+	// TODO: still should handle the case of an overdue_short process
 	else {
 		array = rq->active;
 	}
+	// END OF WET2 
 	if (!rt_task(p) && sleep_time) {
 		/*
 		 * This code gives a bonus to interactive tasks. We update
@@ -289,7 +292,13 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 			p->sleep_avg = MAX_SLEEP_AVG;
 		p->prio = effective_prio(p);
 	}
-	enqueue_task(p, array);
+	// WET2 - separating between cases : overdue_short processes and SHORT/OTHER/ANYTHING ELSE
+	if (!is_process_short_overdue(p,rq)){
+		enqueue_task(p, array);
+	}
+	else {
+		list_add_tail(&p->run_list, rq->overdue_queue);
+	}
 	rq->nr_running++;
 }
 //WET2
