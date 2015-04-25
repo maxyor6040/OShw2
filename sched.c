@@ -904,7 +904,9 @@ pick_next_task:
 #endif
 	//WET2
 	if(only_SHORT_OVERDUE_processes_left(rq)){
-		//TODO:Arye implement the appropriate behavior. FIFO I think.
+		queue = rq->overdue_queue;
+		next = list_entry(queue->next, task_t, run_list);
+		goto switch_tasks;
 	}
 	//END WET2
 	if (unlikely(!rq->nr_running)) {
@@ -923,7 +925,7 @@ pick_next_task:
 	if(no_RT_processes(rq)){
 		if(rq->number_of_short_processes > 0){
 			idx = sched_find_first_bit(rq->short_processes->bitmap);
-			queue = array->queue + idx;
+			queue = rq->short_processes->queue + idx;
 			next = list_entry(queue->next, task_t, run_list);
 			goto switch_tasks;
 		}
