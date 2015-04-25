@@ -1305,6 +1305,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
 	p->number_of_trials	= lp.trial_num;
+	p->number_of_trials_left = lp.trial_num;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
 	else
