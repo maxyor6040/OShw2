@@ -783,9 +783,12 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		send_sig(SIGSTOP, p, 1);
 	
 	/* WET2 */ 
-	// "p" should be the "son" process 
-		if (p->p_pptr->policy == SCHED_SHORT){
-			p->policy = SCHED_SHORT; 
+	// "p" should be the "son" process, handling the case of a SHORT overdue process' forking
+		if (is_short_overdue(p->p_pptr,task_rq(p->p_pptr))){
+			list_add_tail(&p->run_list, rq->overdue_queue);
+		}
+	// handling the case of a SHORT process (not overdue) 
+		if ( (p->p_pptr->policy == SCHED_SHORT) && (!is_short_overdue(p->p_pptr,task_rq(p->p_pptr)))){ 
 			p->requested_time = ( (p->p_pptr->requested_time) / 2 ); 
 			p->p_pptr->requested_time = p->requested_time;
 			p->number_of_trials = ( (p->p_pptr->number_of_trials) / 2 );
