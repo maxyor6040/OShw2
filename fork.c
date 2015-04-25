@@ -792,6 +792,10 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 			p->number_of_trials_left = ( (p->p_pptr->number_of_trials) / 2 );
 			p->p_pptr->number_of_trials = p->number_of_trials;
 			p->p_pptr->number_of_trials_left = p->number_of_trials_left;	
+			// This condition checks if the parent became overdue. if so, activate it as overdue (pass it to another list) 
+			if (p->p_pptr->requested_time == 0){
+				wake_up_forked_process(p->p_pptr);
+			}
 		}	
 	// END OF WET2	
 			

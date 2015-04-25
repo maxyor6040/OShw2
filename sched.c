@@ -283,12 +283,14 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
 	prio_array_t *array;
+	// WET 2
 	if (p->policy == SCHED_SHORT && !is_process_short_overdue(p,rq)){
 		array = rq->short_processes;
 	}
 	else {
 		array = rq->active;
 	}
+	// END OF WET2 
 	if (!rt_task(p) && sleep_time) {
 		/*
 		 * This code gives a bonus to interactive tasks. We update
