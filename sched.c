@@ -1306,7 +1306,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
 	if (policy == SCHED_SHORT) {
-		p->array = task_rq(p)->short_processes;
+		if (array){
+			p->array = task_rq(p)->short_processes;
+		}
 		p->time_slice = lp.requested_time;
 	}
 	p->rt_priority = lp.sched_priority;
