@@ -283,7 +283,7 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
 	prio_array_t *array;
-	if (p->policy == SCHED_SHORT){
+	if (p->policy == SCHED_SHORT && !is_process_short_overdue(p,rq)){
 		array = rq->short_processes;
 	}
 	else {
@@ -302,7 +302,14 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 			p->sleep_avg = MAX_SLEEP_AVG;
 		p->prio = effective_prio(p);
 	}
-	enqueue_task(p, array);
+	//WET 2
+	if (is_process_short_overdue(p,rq)){
+		list_add_tail(&p->run_list, rq->overdue_queue);
+	}
+	else {
+		enqueue_task(p, array);
+	}
+	// END OF WET2 
 	rq->nr_running++;
 }
 //WET2
