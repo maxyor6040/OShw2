@@ -648,6 +648,9 @@ extern long FASTCALL(interruptible_sleep_on_timeout(wait_queue_head_t *q,
 extern int FASTCALL(wake_up_process(task_t * tsk));
 extern void FASTCALL(wake_up_forked_process(task_t * tsk));
 extern void FASTCALL(sched_exit(task_t * p));
+//WET2 CHANGE beginning
+extern void FASTCALL(reset_switch_count(void));
+//WET2 CHANGE end
 
 #define wake_up(x)			__wake_up((x),TASK_UNINTERRUPTIBLE | TASK_INTERRUPTIBLE, 1)
 #define wake_up_nr(x, nr)		__wake_up((x),TASK_UNINTERRUPTIBLE | TASK_INTERRUPTIBLE, nr)
