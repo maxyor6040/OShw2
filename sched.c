@@ -128,6 +128,23 @@ struct prio_array {
 	list_t queue[MAX_PRIO];
 };
 
+//WET2 CHANGE beginning
+
+//struct as defined in wet2 pdf
+struct switch_info {
+	int previous_pid;
+	int next_pid;
+	int previous_policy;
+	int next_policy;
+	unsigned long time;
+	int reason;
+};
+typedef struct switch_info Switch_Info;
+
+#define STATISTICS_RING_BUFFER_SIZE 150
+
+//WET2 CHANGE end
+
 /*
  * This is the main, per-CPU runqueue data structure.
  *
@@ -1870,7 +1887,7 @@ void __init sched_init(void)
 
 		INIT_LIST_HEAD(&rq->overdue_queue);
 		//END WET2
-		
+
 		//WET2 CHANGE beginning
 		rq->first_statistics_index = 0;
 		rq->write_statistics_count = 0;
