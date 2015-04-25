@@ -1254,10 +1254,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		policy = p->policy;
 	else {
 		retval = -EINVAL;
+	/* WET2 - added SCHED_SHORT to the condition */	
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
 				policy != SCHED_OTHER && policy != SCHED_SHORT)
 			goto out_unlock;
 	}
+	/* END OF WET2 */ 
 
 	/*
 	 * Valid priorities for SCHED_FIFO and SCHED_RR are
@@ -1268,10 +1270,10 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0))
 		goto out_unlock;
-	/* CHANGE - CHECKING sched_priority is valid to a SHORT process*/	
+	/* WET2 - CHECKING sched_priority is valid to a SHORT process*/	
 	if ((policy == SCHED_SHORT) != (lp.sched_priority == 0))
 		goto out_unlock;
-	/* END OF CHANGE */ 
+	/* END OF WET2 */ 
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1279,7 +1281,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
-	/* CHANGES - VALID POLICY CHANGES CONDITIONS */
+	/* WET2 - VALID POLICY CHANGES CONDITIONS */
 	// if the process is short_overdue then don't change policy 
 	if (is_process_short_overdue(p, rq)) {
 		goto out_unlock;
@@ -1292,12 +1294,13 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER && p-policy != SCHED_SHORT){
 		goto out_unlock;
 	}
-	/* END OF CHANGES */ 
+	/* END OF WET2 */ 
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
 	retval = 0;
 	p->policy = policy;
+	/* WET2 - if this is a short process update the relevant array and time slice */
 	if (policy == SCHED_SHORT) {
 		p->array = task_rq(p)->short_processes;
 		p->time_slice = lp.requested_time;
@@ -1308,6 +1311,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->number_of_trials_left = lp.trial_num;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
+	/* END OF WET2 */ 	
 	else
 		p->prio = p->static_prio;
 	if (array)
