@@ -1252,8 +1252,10 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 */
 	rq = task_rq_lock(p, &flags);
 
-	if (policy < 0)
+	/* WET2 - CHECKS IF THE CURRENT POLICY IS SHORT AND WE WANT TO CHANGE IT TO SHORT */
+	if ((policy < 0) || ( policy == SCHED_SHORT && p->policy == SCHED_SHORT ))
 		policy = p->policy;
+	/* END OF WET2 */ 
 	else {
 		retval = -EINVAL;
 	/* WET2 - added SCHED_SHORT to the condition */	
