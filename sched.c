@@ -164,10 +164,7 @@ struct runqueue {
 
 	//WET2
 	prio_array_t *short_processes;
-	list_t overdue_queue;
-
-	int number_of_short_processes;
-	int number_of_short_processes_over_due;
+	prio_array_t *short_overdue_processes;
 
 	//WET2 CHANGE beginning
 
@@ -293,7 +290,7 @@ static inline int effective_prio(task_t *p)
 
 //WET2
 static inline int is_process_short_overdue(task_t *p, runqueue_t *rq)
-{return p->run_list == rq->overdue_queue;}
+{return p->array == rq->short_overdue_processes;}
 //END WET2
 
 static inline void activate_task(task_t *p, runqueue_t *rq)
@@ -304,7 +301,10 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	if (p->policy == SCHED_SHORT && !is_process_short_overdue(p,rq)){
 		array = rq->short_processes;
 	}
-	else {
+	else if(is_process_short_overdue(p,rq)){
+		array = rq->short_overdue_processes;
+	}
+	else{
 		array = rq->active;
 	}
 	// END OF WET2 
@@ -321,68 +321,17 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 			p->sleep_avg = MAX_SLEEP_AVG;
 		p->prio = effective_prio(p);
 	}
-	//WET 2
-	if (is_process_short_overdue(p,rq)){
-		list_add_tail(&p->run_list, rq->overdue_queue);
-	}
-	else {
-		enqueue_task(p, array);
-	}
-	// END OF WET2 
+	enqueue_task(p, array);
 	rq->nr_running++;
 }
-//WET2
-void handle_short_task_deactivation(struct task_struct *p, runqueue_t *rq)
-{
-	if(is_process_short_overdue(p, rq))// if this process is short_overdue
-	{
-		if(p->time_slice == 0)// if the process finished it's time-slice
-		{
-			list_del(&p->run_list);
-			list_add_tail(&p->run_list, rq->overdue_queue);
-		}
-		else
-		{
-			//I don't think there's anything we need to do in this case
-		}
-		return;
-	}
-	if(p->time_slice == 0){  // if the process finished it's time-slice
-		if(--p->number_of_trials_left == 0) // if the process is out of trials
-		{
-			dequeue_task(p, p->array);
-			p->run_list = rq->overdue_queue;
-			list_add_tail(&p->run_list, rq->overdue_queue);
-			p->array = NULL;
-		}
-		else // if the process isn't out of trials
-		{
-			dequeue_task(p, p->array);
-			enqueue_task(p, p->array);
-		}
-	}
-	else // if the process didn't finish it's time slice
-	{
-		//I don't think there's anything we need to do in this case
-	}
-}
-//END WET2
+
+
 static inline void deactivate_task(struct task_struct *p, runqueue_t *rq)
 {
 	rq->nr_running--;
 	if (p->state == TASK_UNINTERRUPTIBLE)
 		rq->nr_uninterruptible++;
-
-	//WET2
-	if(is_process_short_overdue(p, rq))// if this process is short_overdue
-	{
-		list_del(&p->run_list);
-		list_add_tail(&p->run_list, rq->overdue_queue);
-	}
-	else{
-		dequeue_task(p, p->array);
-	}
-	//END WET2
+	dequeue_task(p, p->array);
 	p->array = NULL;
 }
 
@@ -842,7 +791,9 @@ void scheduler_tick(int user_tick, int system)
 	kstat.per_cpu_system[cpu] += system;
 
 	/* Task might have expired already, but not scheduled off yet */
-	if (p->array != rq->active) {
+	if ((p->array != rq->active)
+		&& (p->array != rq->short_processes)
+		&& (p->array != rq->short_overdue_processes)) {
 		set_tsk_need_resched(p);
 		return;
 	}
@@ -893,6 +844,39 @@ void scheduler_tick(int user_tick, int system)
 	{
 		//TODO Arye implement the  SHORT/SHORT_OVERDUE policies.
 		//probably the stuff I wrote in "handle_short_task_deactivation" might come in handy.
+/*
+		if(is_process_short_overdue(p, rq))// if this process is short_overdue
+			{
+				if(p->time_slice == 0)// if the process finished it's time-slice
+				{
+					list_del(&p->run_list);
+					list_add_tail(&p->run_list, rq->overdue_queue);
+				}
+				else
+				{
+					//I don't think there's anything we need to do in this case
+				}
+				return;
+			}
+			if(p->time_slice == 0){  // if the process finished it's time-slice
+				if(--p->number_of_trials_left == 0) // if the process is out of trials
+				{
+					dequeue_task(p, p->array);
+					p->run_list = rq->overdue_queue;
+					list_add_tail(&p->run_list, rq->overdue_queue);
+					p->array = NULL;
+				}
+				else // if the process isn't out of trials
+				{
+					dequeue_task(p, p->array);
+					enqueue_task(p, p->array);
+				}
+			}
+			else // if the process didn't finish it's time slice
+			{
+				//I don't think there's anything we need to do in this case
+			}
+*/
 	}
 out:
 #if CONFIG_SMP
@@ -906,7 +890,7 @@ void scheduling_functions_start_here(void) { }
 
 //WET2
 static inline int only_SHORT_OVERDUE_processes_left(runqueue_t *rq)
-{return !(rq->nr_running - rq->number_of_short_processes_over_due);}
+{return !(rq->nr_running - rq->short_overdue_processes->nr_active);}
 static inline int no_RT_processes(runqueue_t *rq)
 {return sched_find_first_bit(rq->active->bitmap) > MAX_RT_PRIO;}
 //END WET2
@@ -950,8 +934,13 @@ pick_next_task:
 #endif
 	//WET2
 	if(only_SHORT_OVERDUE_processes_left(rq)){
-		queue = rq->overdue_queue;
+		idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
+		//in our implementation the idx should be the same number always.
+		queue = rq->short_overdue_processes->queue + idx;
 		next = list_entry(queue->next, task_t, run_list);
+		//TODO shoud decide here how many ticks short_overdue process will have
+		//TODO should implement the queue activity here
+		//prev->array = rq->short_overdue_processes;
 		goto switch_tasks;
 	}
 	//END WET2
@@ -969,7 +958,8 @@ pick_next_task:
 	//WET2
 	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
 	if(no_RT_processes(rq)){
-		if(rq->number_of_short_processes > 0){
+
+		if(rq->short_processes->nr_active > 0){
 			idx = sched_find_first_bit(rq->short_processes->bitmap);
 			queue = rq->short_processes->queue + idx;
 			next = list_entry(queue->next, task_t, run_list);
@@ -1887,12 +1877,12 @@ void __init sched_init(void)
 		for (k = 0; k < MAX_PRIO; k++) {
 			INIT_LIST_HEAD(rq->short_processes->queue + k);
 			__clear_bit(k, rq->short_processes->bitmap);
+			INIT_LIST_HEAD(rq->short_overdue_processes->queue + k);
+			__clear_bit(k, rq->short_overdue_processes->bitmap);
 		}
 		// delimiter for bitsearch
 		__set_bit(MAX_PRIO, rq->short_processes->bitmap);
-
-
-		INIT_LIST_HEAD(&rq->overdue_queue);
+		__set_bit(MAX_PRIO, rq->short_overdue_processes->bitmap);
 		//END WET2
 
 		//WET2 CHANGE beginning
