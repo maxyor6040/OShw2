@@ -497,13 +497,7 @@ NORET_TYPE void do_exit(long code)
 	struct task_struct *tsk = current;
 	// WET2
 	if (tsk->policy == SCHED_SHORT){
-		if (is_overdue_short(tsk)){
-			// TODO: check if this will delete the overdue_short process from the relevant list
-			list_del(&p->run_list);
-		}
-		else {
-			dequeue_task(tsk, tsk->array);
-		}
+		dequeue_task(tsk, tsk->array);
 	}
 	// END OF WET2 
 	if (in_interrupt())
