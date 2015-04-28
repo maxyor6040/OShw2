@@ -429,8 +429,49 @@ repeat_lock_task:
 		/*
 		 * If sync is set, a resched_task() is a NOOP
 		 */
+		if(p->pid == 0)
+			goto default_behaviour;
+
+		switch (p->policy) {
+			case SCHED_FIFO:
+				goto same_case;
+				break;
+			case SCHED_RR:
+same_case:		if(!rq->curr->is_SHORT_OVERDUE)
+					goto default_behaviour;
+				else
+					goto do_it;
+				break;
+			case SCHED_SHORT:
+				if(!p->is_SHORT_OVERDUE) {
+					if( (rq->curr->policy == SCHED_FIFO) ||
+						(rq->curr->policy == SCHED_RR) ||
+						( (rq->curr->policy == SCHED_SHORT) &&
+							(!rq->curr->is_SHORT_OVERDUE)))
+						goto default_behaviour;
+					else
+						goto dont_do_it;
+				}
+				break;
+			case SCHED_OTHER:
+				if((rq->curr->policy == SCHED_FIFO) ||
+					(rq->curr->policy == SCHED_RR) ||
+					(rq->curr->policy == SCHED_OTHER))
+					goto default_behaviour;
+				else if(!rq->curr->is_SHORT_OVERDUE)
+					goto do_it;
+				else
+					goto dont_do_it;
+				break;
+			default:
+				goto dont_do_it;
+				break;
+		}
+
+default_behaviour:
 		if (p->prio < rq->curr->prio)
-			resched_task(rq->curr);
+do_it:		resched_task(rq->curr);
+dont_do_it:
 		success = 1;
 	}
 	p->state = TASK_RUNNING;
@@ -843,16 +884,15 @@ void scheduler_tick(int user_tick, int system)
 				enqueue_task(p, rq->active);
 		}
 	//WET2
-	} else //if process is SHORT/SHORT_OVERDUE
-	{
+	} else {//if process is SHORT/SHORT_OVERDUE
 		//WET2 remove
 		if(p->policy!= SCHED_SHORT)
 			printk("SHOULD ENETER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
 
 		if((!p->is_SHORT_OVERDUE) && (!--p->time_slice)) {
 			//if process should become SHORT_OVERDUE
-			if((!--p->number_of_trials_left)||
-				(p->requested_time/(p->number_of_trials-p->number_of_trials_left))) {
+			if((++p->number_of_trials_used > p->number_of_trials)||
+				(!p->requested_time/p->number_of_trials_used)) {
 
 				p->is_SHORT_OVERDUE = 1;
 				dequeue_task(p, rq->short_processes);
@@ -868,7 +908,7 @@ void scheduler_tick(int user_tick, int system)
 				set_tsk_need_resched(p);
 				p->prio = effective_prio(p);//TODO make sure the prio of SHORT should be calculated just like OTHER
 				p->first_time_slice = 0;
-				p->time_slice = p->requested_time / ( p->number_of_trials - p->number_of_trials_left ) ;
+				p->time_slice = p->requested_time / p->number_of_trials_used;
 				enqueue_task(p, rq->short_processes);
 			}
 		}
@@ -927,20 +967,6 @@ need_resched:
 #if CONFIG_SMP
 pick_next_task:
 #endif
-	//WET2
-	if(only_SHORT_OVERDUE_processes_left(rq)){
-		idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
-		//WET2 REMOVE
-		if(idx != 0)
-			printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
-
-		//in our implementation the idx should be the same number always.
-		queue = rq->short_overdue_processes->queue + idx;
-		next = list_entry(queue->next, task_t, run_list);
-
-		goto switch_tasks;
-	}
-	//END WET2
 	if (unlikely(!rq->nr_running)) {
 #if CONFIG_SMP
 		load_balance(rq, 1);
@@ -953,9 +979,25 @@ pick_next_task:
 	}
 
 	//WET2
-	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
-	if(no_RT_processes(rq)){
+	if(only_SHORT_OVERDUE_processes_left(rq)){
+		printk("DICKBUT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
+		idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
+		//WET2 REMOVE
+		if(idx != 0)
+			printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
+
+		//in our implementation the idx should be the same number always.
+		queue = rq->short_overdue_processes->queue + idx;
+		next = list_entry(queue->next, task_t, run_list);
+
+		goto switch_tasks;
+
+	}
+	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
+
+	if(no_RT_processes(rq)){
+		printk("JIZZ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		if(rq->short_processes->nr_active > 0){
 			idx = sched_find_first_bit(rq->short_processes->bitmap);
 			queue = rq->short_processes->queue + idx;
@@ -964,6 +1006,7 @@ pick_next_task:
 		}
 	}
 	//END WET2
+
 	array = rq->active;
 	if (unlikely(!array->nr_active)) {
 		/*
@@ -1308,6 +1351,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0))
 		goto out_unlock;
 	/* WET2 - CHECKING sched_priority is valid to a SHORT process*/	
+	//TODO make sure this is necessary
 	if ((policy == SCHED_SHORT) != (lp.sched_priority == 0))
 		goto out_unlock;
 	/* END OF WET2 */ 
@@ -1320,7 +1364,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	/* WET2 - VALID POLICY CHANGES CONDITIONS */
 	// if the process is short_overdue then don't change policy 
-	if (is_process_short_overdue(p, rq)) {
+	if (p->is_SHORT_OVERDUE) {
 		goto out_unlock;
 	}
 	// if the relevant process' policy is SCHED_SHORT we can change it to SHORT or OVERDUE_SHORT
@@ -1347,7 +1391,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
 	p->number_of_trials	= lp.trial_num;
-	p->number_of_trials_left = lp.trial_num;
+	p->number_of_trials_used = 0;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
 	/* END OF WET2 */ 	
@@ -1633,7 +1677,7 @@ int check_is_SHORT_and_not_OVERDUE(int pid){
 	if (p->policy != SCHED_SHORT) {//if not SHORT
 		return -EINVAL;
 	}
-	if (is_process_short_overdue(p, rq)) {//if OVERDUE
+	if (p->is_SHORT_OVERDUE) {//if OVERDUE
 		return 0;
 	}
 	return 1;//SHORT but not OVERDUE
@@ -1645,19 +1689,21 @@ asmlinkage int sys_is_SHORT(int pid) {
 }
 
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "time_slice"
-asmlinkage int remaining_time(int pid){
+asmlinkage int sys_remaining_time(int pid){
 	int retval = check_is_SHORT_and_not_OVERDUE(pid);
-	return ((retval==1) ? (p->time_slice) : (retval));
+	return ((retval==1) ? (find_process_by_pid(pid)->time_slice) : (retval));
 }
 
-//same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "number_of_trials_left"
-asmlinkage int remaining_trials(int pid){
+//same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "number_of_trials_used"
+asmlinkage int sys_remaining_trials(int pid){
 	int retval = check_is_SHORT_and_not_OVERDUE(pid);
-	return ((retval==1) ? (p->number_of_trials_left) : (retval));
+	return ((retval==1) ? (find_process_by_pid(pid)->number_of_trials_used) : (retval));
 }
 
 //writes all statistics to "si" address in USER MODE memory
 asmlinkage int sys_get_scheduling_statistic(struct switch_info* si){
+	//TODO retrieve this
+	/*
 	runqueue_t *rq;
 	rq=this_rq();
 	int first = rq->first_statistics_index;
@@ -1670,9 +1716,15 @@ asmlinkage int sys_get_scheduling_statistic(struct switch_info* si){
 		fails += copy_to_user(si+(STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info)), buffer, first * sizeof(switch_info));
 	}
 	return write_statistics_count - (fails/sizeof(switch_info));//how many were successfully copied
+	*/
+	return 0;
+
+
 }
 //enter statistics of new switch (if switch_count<30)
-void add_to_statistics_buffer(switch_info* si){
+
+void add_to_statistics_buffer(struct switch_info * si){
+	/*
 	runqueue_t *rq;
 	rq=this_rq();
 	if(rq->switch_count>=30){//no need to add to buffer
@@ -1684,7 +1736,9 @@ void add_to_statistics_buffer(switch_info* si){
 		rq->first_statistics_index = (rq->first_statistics_index + 1) % STATISTICS_RING_BUFFER_SIZE;//first_index "points" to the next cell (current first)
 	}
 	rq->write_statistics_count++;//write_statistics_count(mod 150) "points" to the next cell for writing
+	*/
 }
+
 
 //set switch_count to 0
 void reset_switch_count(){
@@ -1877,6 +1931,7 @@ void __init sched_init(void)
 			INIT_LIST_HEAD(rq->short_overdue_processes->queue + k);
 			__clear_bit(k, rq->short_overdue_processes->bitmap);
 		}
+
 		// delimiter for bitsearch
 		__set_bit(MAX_PRIO, rq->short_processes->bitmap);
 		__set_bit(MAX_PRIO, rq->short_overdue_processes->bitmap);

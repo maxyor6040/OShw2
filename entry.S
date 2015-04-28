@@ -651,7 +651,7 @@ ENTRY(sys_call_table)
 	.long SYMBOL_NAME(sys_sched_getaffinity)
 	/* CHANGE */
 	.long SYMBOL_NAME(sys_is_SHORT)			/* 243 reserved for is_SHORT */
-	.long SYMBOL_NAME(sys_remaining_time)	/* 244 reserved for remaining_time */	
+	.long SYMBOL_NAME(sys_remaining_time)	/* 244 reserved for remaining_time */
 	.long SYMBOL_NAME(sys_remaining_trials)	/* 245 reserved for remaining_trials */
 	.long SYMBOL_NAME(sys_get_scheduling_statistic)	/* 246 reserved for get_scheduling_statistic */
 	/* END OF CHANGE */

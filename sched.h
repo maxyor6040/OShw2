@@ -457,7 +457,7 @@ struct task_struct {
 	void *journal_info;
 
 	//WET2
-	u64 requested_time;
+	int requested_time;
 	int number_of_trials;
 	int number_of_trials_used;
 	int is_SHORT_OVERDUE;
