@@ -429,9 +429,12 @@ repeat_lock_task:
 		/*
 		 * If sync is set, a resched_task() is a NOOP
 		 */
-		if(p->pid == 0)
+		if(rq->curr == rq->idle)
+			goto default_behaviour;
+		if ((rq->curr->policy != SCHED_SHORT)&&(p->policy != SCHED_SHORT))
 			goto default_behaviour;
 
+		//WET2
 		switch (p->policy) {
 			case SCHED_FIFO:
 				goto same_case;
@@ -467,6 +470,7 @@ same_case:		if(!rq->curr->is_SHORT_OVERDUE)
 				goto dont_do_it;
 				break;
 		}
+//END WET2
 
 default_behaviour:
 		if (p->prio < rq->curr->prio)
@@ -979,9 +983,12 @@ pick_next_task:
 	}
 
 	//WET2
+	if(current == rq->idle)
+		goto defff;
+
 	if(only_SHORT_OVERDUE_processes_left(rq)){
 		printk("DICKBUT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-
+		if(rq->short_overdue_processes->nr_active > 0){
 		idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
 		//WET2 REMOVE
 		if(idx != 0)
@@ -992,7 +999,7 @@ pick_next_task:
 		next = list_entry(queue->next, task_t, run_list);
 
 		goto switch_tasks;
-
+		}
 	}
 	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
 
@@ -1005,6 +1012,8 @@ pick_next_task:
 			goto switch_tasks;
 		}
 	}
+
+	defff:
 	//END WET2
 
 	array = rq->active;
@@ -1924,6 +1933,7 @@ void __init sched_init(void)
 			// delimiter for bitsearch
 			__set_bit(MAX_PRIO, array->bitmap);
 		}
+		/*
 		//WET2
 		for (k = 0; k < MAX_PRIO; k++) {
 			INIT_LIST_HEAD(rq->short_processes->queue + k);
@@ -1936,6 +1946,7 @@ void __init sched_init(void)
 		__set_bit(MAX_PRIO, rq->short_processes->bitmap);
 		__set_bit(MAX_PRIO, rq->short_overdue_processes->bitmap);
 		//END WET2
+		 */
 
 		//WET2 CHANGE beginning
 		rq->first_statistics_index = 0;
