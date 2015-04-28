@@ -165,6 +165,7 @@ struct runqueue {
 	//WET2
 	prio_array_t *short_processes;
 	prio_array_t *short_overdue_processes;
+	//END WET2
 
 	//WET2 CHANGE beginning
 
@@ -288,26 +289,26 @@ static inline int effective_prio(task_t *p)
 	return prio;
 }
 
-//WET2
-static inline int is_process_short_overdue(task_t *p, runqueue_t *rq)
-{return p->array == rq->short_overdue_processes;}
-//END WET2
-
 static inline void activate_task(task_t *p, runqueue_t *rq)
 {
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
 	prio_array_t *array;
 	// WET 2
-	if (p->policy == SCHED_SHORT && !is_process_short_overdue(p,rq)){
+	if (p->policy == SCHED_SHORT && !p->is_SHORT_OVERDUE){
 		array = rq->short_processes;
 	}
-	else if(is_process_short_overdue(p,rq)){
+	else if(p->is_SHORT_OVERDUE){
 		array = rq->short_overdue_processes;
 	}
 	else{
 		array = rq->active;
 	}
-	// END OF WET2 
+	// END OF WET2
+
+	//WET2 REMOVE
+	if(p->is_SHORT_OVERDUE && !rt_task(p))
+		printk("WE FUCKED UP! SHORT_OVERDUE SHOULD BE RT!!!");
+
 	if (!rt_task(p) && sleep_time) {
 		/*
 		 * This code gives a bonus to interactive tasks. We update
@@ -766,6 +767,7 @@ static inline void idle_tick(void)
 		(jiffies - (rq)->expired_timestamp >= \
 			STARVATION_LIMIT * ((rq)->nr_running) + 1))
 
+
 /*
  * This function gets called by the timer code, with HZ frequency.
  * We call it with interrupts disabled.
@@ -791,13 +793,14 @@ void scheduler_tick(int user_tick, int system)
 	kstat.per_cpu_system[cpu] += system;
 
 	/* Task might have expired already, but not scheduled off yet */
-	if ((p->array != rq->active)
-		&& (p->array != rq->short_processes)
-		&& (p->array != rq->short_overdue_processes)) {
+	if ((p->array != rq->active) &&
+		(p->array != rq->short_processes) &&
+		(p->array != rq->short_overdue_processes)) {
 		set_tsk_need_resched(p);
 		return;
 	}
 	spin_lock(&rq->lock);
+	//WET2 note: SHORT_OVERDUE process WILL pass this if statement
 	if (unlikely(rt_task(p))) {
 		/*
 		 * RR tasks need a special form of timeslice management.
@@ -824,7 +827,7 @@ void scheduler_tick(int user_tick, int system)
 	 */
 	if (p->sleep_avg)
 		p->sleep_avg--;
-	if(p->array == rq-> active){ //if process isn't SHORT/SHORT_OVERDUE
+	if(p->array == rq->active){ //if process isn't SHORT/SHORT_OVERDUE
 		if (!--p->time_slice) {
 			dequeue_task(p, rq->active);
 			set_tsk_need_resched(p);
@@ -839,44 +842,36 @@ void scheduler_tick(int user_tick, int system)
 			} else
 				enqueue_task(p, rq->active);
 		}
-		//WET2
+	//WET2
 	} else //if process is SHORT/SHORT_OVERDUE
 	{
-		//TODO Arye implement the  SHORT/SHORT_OVERDUE policies.
-		//probably the stuff I wrote in "handle_short_task_deactivation" might come in handy.
-/*
-		if(is_process_short_overdue(p, rq))// if this process is short_overdue
-			{
-				if(p->time_slice == 0)// if the process finished it's time-slice
-				{
-					list_del(&p->run_list);
-					list_add_tail(&p->run_list, rq->overdue_queue);
-				}
-				else
-				{
-					//I don't think there's anything we need to do in this case
-				}
-				return;
+		//WET2 remove
+		if(p->policy!= SCHED_SHORT)
+			printk("SHOULD ENETER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
+
+		if((!p->is_SHORT_OVERDUE) && (!--p->time_slice)) {
+			//if process should become SHORT_OVERDUE
+			if((!--p->number_of_trials_left)||
+				(p->requested_time/(p->number_of_trials-p->number_of_trials_left))) {
+
+				p->is_SHORT_OVERDUE = 1;
+				dequeue_task(p, rq->short_processes);
+				set_tsk_need_resched(p);
+				p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
+				p->first_time_slice = 0; //WHAT IS THAT?!
+				p->time_slice = -1; //just 'cause we don't use time_slice
+				enqueue_task(p, rq->short_overdue_processes);
 			}
-			if(p->time_slice == 0){  // if the process finished it's time-slice
-				if(--p->number_of_trials_left == 0) // if the process is out of trials
-				{
-					dequeue_task(p, p->array);
-					p->run_list = rq->overdue_queue;
-					list_add_tail(&p->run_list, rq->overdue_queue);
-					p->array = NULL;
-				}
-				else // if the process isn't out of trials
-				{
-					dequeue_task(p, p->array);
-					enqueue_task(p, p->array);
-				}
+			//if process remains SHORT
+			else {
+				dequeue_task(p, rq->short_processes);
+				set_tsk_need_resched(p);
+				p->prio = effective_prio(p);//TODO make sure the prio of SHORT should be calculated just like OTHER
+				p->first_time_slice = 0;
+				p->time_slice = p->requested_time / ( p->number_of_trials - p->number_of_trials_left ) ;
+				enqueue_task(p, rq->short_processes);
 			}
-			else // if the process didn't finish it's time slice
-			{
-				//I don't think there's anything we need to do in this case
-			}
-*/
+		}
 	}
 out:
 #if CONFIG_SMP
@@ -935,12 +930,14 @@ pick_next_task:
 	//WET2
 	if(only_SHORT_OVERDUE_processes_left(rq)){
 		idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
+		//WET2 REMOVE
+		if(idx != 0)
+			printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
+
 		//in our implementation the idx should be the same number always.
 		queue = rq->short_overdue_processes->queue + idx;
 		next = list_entry(queue->next, task_t, run_list);
-		//TODO shoud decide here how many ticks short_overdue process will have
-		//TODO should implement the queue activity here
-		//prev->array = rq->short_overdue_processes;
+
 		goto switch_tasks;
 	}
 	//END WET2
