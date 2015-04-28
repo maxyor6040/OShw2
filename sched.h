@@ -651,7 +651,7 @@ extern int FASTCALL(wake_up_process(task_t * tsk));
 extern void FASTCALL(wake_up_forked_process(task_t * tsk));
 extern void FASTCALL(sched_exit(task_t * p));
 //WET2 CHANGE beginning
-extern void FASTCALL(reset_switch_count(void));
+//extern void FASTCALL(reset_switch_count(void));
 //WET2 CHANGE end
 
 #define wake_up(x)			__wake_up((x),TASK_UNINTERRUPTIBLE | TASK_INTERRUPTIBLE, 1)

@@ -291,9 +291,9 @@ extern asmlinkage long sys_recvmsg(int fd, struct msghdr *msg,
 				unsigned int flags);
 extern asmlinkage long sys_socketcall(int call, unsigned long *args);
 
-// CHANGE!! - ADDITIONS OF DECLARATIONS OF THE WRAPPERS //
+//WET2 CHANGE!! - ADDITIONS OF DECLARATIONS OF THE WRAPPERS //
 extern asmlinkage int sys_is_SHORT(int pid);
-extren asmlinkage int sys_remaining_time(int pid)
+extern asmlinkage int sys_remaining_time(int pid);
 extern asmlinkage int sys_remaining_trials(int pid);
 extern asmlinkage int sys_get_scheduling_statistic(struct switch_info *);
 
