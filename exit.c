@@ -485,12 +485,6 @@ static void exit_notify(void)
 	write_unlock_irq(&tasklist_lock);
 }
 
-// WET2 - auxilary function checking if this is an overdue_short process
-
-static inline int is_overdue_short(task_struct *p){
-	return  (p->policy == SCHED_SHORT && p->requested_time == 0);
-}
-// END OF WET2 
 
 NORET_TYPE void do_exit(long code)
 {
