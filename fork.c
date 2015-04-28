@@ -575,12 +575,6 @@ static inline void copy_flags(unsigned long clone_flags, struct task_struct *p)
 	p->flags = new_flags;
 }
 
-// WET2  
-static inline int is_short_overdue(task_t *p){
-	return (p->policy == SCHED_SHORT && p->requested_time == 0);
-}
-//END WET2
-
 
 
 /*
@@ -785,17 +779,11 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	
 	/* WET2 */ 
 	// "p" should be the "son" process, handling the case of a SHORT process (not overdue) 
-		if ( (p->p_pptr->policy == SCHED_SHORT) && (!is_short_overdue(p->p_pptr))){ 
-			p->requested_time = ( (p->p_pptr->requested_time) / 2 ); 
-			p->p_pptr->requested_time = p->requested_time;
+		if ( (p->p_pptr->policy == SCHED_SHORT) && (!p->p_pptr->is_SHORT_OVERDUE)){ 
 			p->number_of_trials = ( (p->p_pptr->number_of_trials) / 2 );
 			p->number_of_trials_left = ( (p->p_pptr->number_of_trials) / 2 );
 			p->p_pptr->number_of_trials = p->number_of_trials;
 			p->p_pptr->number_of_trials_left = p->number_of_trials_left;	
-			// This condition checks if the parent became overdue. if so, activate it as overdue (pass it to another list) 
-			if (p->p_pptr->requested_time == 0){
-				wake_up_forked_process(p->p_pptr);
-			}
 		}	
 	// END OF WET2	
 			
