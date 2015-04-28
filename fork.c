@@ -779,9 +779,9 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	
 	/* WET2 */ 
 	// "p" should be the "son" process, handling the case of a SHORT process (not overdue) 
-		if ( (p->p_pptr->policy == SCHED_SHORT) && (!p->p_pptr->is_SHORT_OVERDUE)){ 
+		if ( (p->p_pptr->policy == SCHED_SHORT) && (!p->p_pptr->is_SHORT_OVERDUE)){
 			p->number_of_trials = ( (p->p_pptr->number_of_trials) / 2 );
-			p->number_of_trials_left = ( (p->p_pptr->number_of_trials) / 2 );
+			p->number_of_trials_left = ( (p->p_pptr->number_of_trials_left) / 2 );
 			p->p_pptr->number_of_trials = p->number_of_trials;
 			p->p_pptr->number_of_trials_left = p->number_of_trials_left;	
 		}	
