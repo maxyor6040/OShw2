@@ -495,11 +495,6 @@ static inline int is_overdue_short(task_struct *p){
 NORET_TYPE void do_exit(long code)
 {
 	struct task_struct *tsk = current;
-	// WET2
-	if (tsk->policy == SCHED_SHORT){
-		dequeue_task(tsk, tsk->array);
-	}
-	// END OF WET2 
 	if (in_interrupt())
 		panic("Aiee, killing interrupt handler!");
 	if (!tsk->pid)
