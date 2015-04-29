@@ -860,6 +860,7 @@ void scheduler_tick(int user_tick, int system)
 			dequeue_task(p, rq->active);
 			enqueue_task(p, rq->active);
 		}
+		//WET2 note: it will goto out. I think that's what we want since SHORT_OVERDUE == FIFO
 		goto out;
 	}
 	/*
@@ -902,17 +903,22 @@ void scheduler_tick(int user_tick, int system)
 				dequeue_task(p, rq->short_processes);
 				set_tsk_need_resched(p);
 				p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
-				p->first_time_slice = 0; //WHAT IS THAT?!
-				p->time_slice = -1; //just 'cause we don't use time_slice
+				p->first_time_slice = 0;
+				p->time_slice = -1; //just 'cause we don't use time_slice in SHORT_OVERDUE
 				enqueue_task(p, rq->short_overdue_processes);
 			}
 			//if process remains SHORT
 			else {
-				dequeue_task(p, rq->short_processes);
-				set_tsk_need_resched(p);
+				//Implemented RR for SCHED_SHORT
+
 				p->prio = effective_prio(p);//TODO make sure the prio of SHORT should be calculated just like OTHER
 				p->first_time_slice = 0;
 				p->time_slice = p->requested_time / p->number_of_trials_used;
+
+				set_tsk_need_resched(p);
+
+				/* put it at the end of the queue: */
+				dequeue_task(p, rq->short_processes);
 				enqueue_task(p, rq->short_processes);
 			}
 		}
@@ -983,6 +989,8 @@ pick_next_task:
 	}
 
 	//WET2
+
+	//this is probably unnecessary
 	if(current == rq->idle)
 		goto defff;
 
@@ -1340,15 +1348,15 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	/* WET2 - CHECKS IF THE CURRENT POLICY IS SHORT AND WE WANT TO CHANGE IT TO SHORT */
 	if ((policy < 0) || ( policy == SCHED_SHORT && p->policy == SCHED_SHORT ))
 		policy = p->policy;
-	/* END OF WET2 */ 
+	/* END OF WET2 */
 	else {
 		retval = -EINVAL;
-	/* WET2 - added SCHED_SHORT to the condition */	
+	/* WET2 - added SCHED_SHORT to the condition */
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
 				policy != SCHED_OTHER && policy != SCHED_SHORT)
 			goto out_unlock;
 	}
-	/* END OF WET2 */ 
+	/* END OF WET2 */
 
 	/*
 	 * Valid priorities for SCHED_FIFO and SCHED_RR are
@@ -1359,11 +1367,11 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		goto out_unlock;
 	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0))
 		goto out_unlock;
-	/* WET2 - CHECKING sched_priority is valid to a SHORT process*/	
+	/* WET2 - CHECKING sched_priority is valid to a SHORT process*/
 	//TODO make sure this is necessary
 	if ((policy == SCHED_SHORT) != (lp.sched_priority == 0))
 		goto out_unlock;
-	/* END OF WET2 */ 
+	/* END OF WET2 */
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1372,7 +1380,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
 	/* WET2 - VALID POLICY CHANGES CONDITIONS */
-	// if the process is short_overdue then don't change policy 
+	// if the process is short_overdue then don't change policy
 	if (p->is_SHORT_OVERDUE) {
 		goto out_unlock;
 	}
@@ -1380,11 +1388,11 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if (p->policy == SCHED_SHORT && policy != SCHED_SHORT){
 		goto out_unlock;
 	}
-	// if we're trying to change the policy to short from anything else than OTHER, it's wrong 
+	// if we're trying to change the policy to short from anything else than OTHER, it's wrong
 	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER && p->policy != SCHED_SHORT){
 		goto out_unlock;
 	}
-	/* END OF WET2 */ 
+	/* END OF WET2 */
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
@@ -1403,7 +1411,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->number_of_trials_used = 0;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
-	/* END OF WET2 */ 	
+	/* END OF WET2 */
 	else
 		p->prio = p->static_prio;
 	if (array)
@@ -1933,7 +1941,7 @@ void __init sched_init(void)
 			// delimiter for bitsearch
 			__set_bit(MAX_PRIO, array->bitmap);
 		}
-		/*
+
 		//WET2
 		for (k = 0; k < MAX_PRIO; k++) {
 			INIT_LIST_HEAD(rq->short_processes->queue + k);
@@ -1946,7 +1954,7 @@ void __init sched_init(void)
 		__set_bit(MAX_PRIO, rq->short_processes->bitmap);
 		__set_bit(MAX_PRIO, rq->short_overdue_processes->bitmap);
 		//END WET2
-		 */
+
 
 		//WET2 CHANGE beginning
 		rq->first_statistics_index = 0;
