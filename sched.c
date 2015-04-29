@@ -157,14 +157,13 @@ struct runqueue {
 	unsigned long nr_running, nr_switches, expired_timestamp;
 	signed long nr_uninterruptible;
 	task_t *curr, *idle;
-	prio_array_t *active, *expired, arrays[2];
+	prio_array_t *active, *expired, arrays[4];
 	int prev_nr_running[NR_CPUS];
 	task_t *migration_thread;
 	list_t migration_queue;
 
 	//WET2
-	prio_array_t *short_processes;
-	prio_array_t *short_overdue_processes;
+	prio_array_t *short_processes, *short_overdue_processes;
 	//END WET2
 
 	//WET2 CHANGE beginning
@@ -1929,10 +1928,14 @@ void __init sched_init(void)
 		rq = cpu_rq(i);
 		rq->active = rq->arrays;
 		rq->expired = rq->arrays + 1;
+		//WET2
+		rq->short_processes = rq->arrays +2;
+		rq->short_overdue_processes = rq->arrays +3;
+		//END WET2
 		spin_lock_init(&rq->lock);
 		INIT_LIST_HEAD(&rq->migration_queue);
 
-		for (j = 0; j < 2; j++) {
+		for (j = 0; j < 4; j++) {
 			array = rq->arrays + j;
 			for (k = 0; k < MAX_PRIO; k++) {
 				INIT_LIST_HEAD(array->queue + k);
@@ -1941,20 +1944,6 @@ void __init sched_init(void)
 			// delimiter for bitsearch
 			__set_bit(MAX_PRIO, array->bitmap);
 		}
-
-		//WET2
-		for (k = 0; k < MAX_PRIO; k++) {
-			INIT_LIST_HEAD(rq->short_processes->queue + k);
-			__clear_bit(k, rq->short_processes->bitmap);
-			INIT_LIST_HEAD(rq->short_overdue_processes->queue + k);
-			__clear_bit(k, rq->short_overdue_processes->bitmap);
-		}
-
-		// delimiter for bitsearch
-		__set_bit(MAX_PRIO, rq->short_processes->bitmap);
-		__set_bit(MAX_PRIO, rq->short_overdue_processes->bitmap);
-		//END WET2
-
 
 		//WET2 CHANGE beginning
 		rq->first_statistics_index = 0;
