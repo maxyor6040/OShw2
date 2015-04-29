@@ -988,13 +988,7 @@ pick_next_task:
 	}
 
 	//WET2
-
-	//this is probably unnecessary
-	if(current == rq->idle)
-		goto defff;
-
 	if(only_SHORT_OVERDUE_processes_left(rq)){
-		printk("DICKBUT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		if(rq->short_overdue_processes->nr_active > 0){
 		idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
 		//WET2 REMOVE
@@ -1011,7 +1005,6 @@ pick_next_task:
 	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
 
 	if(no_RT_processes(rq)){
-		printk("JIZZ!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 		if(rq->short_processes->nr_active > 0){
 			idx = sched_find_first_bit(rq->short_processes->bitmap);
 			queue = rq->short_processes->queue + idx;
@@ -1019,8 +1012,6 @@ pick_next_task:
 			goto switch_tasks;
 		}
 	}
-
-	defff:
 	//END WET2
 
 	array = rq->active;
