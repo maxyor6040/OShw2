@@ -1711,7 +1711,7 @@ asmlinkage int sys_get_scheduling_statistic(struct switch_info* si){
 		return rq->write_statistics_last - (fails/sizeof(switch_info));//how many were successfully copied
 	}else{
 		fails = copy_to_user(si, &buffer[first], (STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info));
-		fails += copy_to_user(si+(STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info)), buffer, first * sizeof(switch_info));
+		fails += copy_to_user(si + ((STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info)), buffer, first * sizeof(switch_info));
 	}
 	return STATISTICS_RING_BUFFER_SIZE - (fails/sizeof(switch_info));//how many were successfully copied
 
@@ -1726,7 +1726,7 @@ void add_to_statistics_buffer(struct switch_info * si){
 		return;
 	}
 	rq->switch_count++;//count switch
-	rq->statistics_ring_buffer[write_statistics_last] = *si;//write to buffer
+	rq->statistics_ring_buffer[rq->write_statistics_last] = *si;//write to buffer
 
 	if((rq->write_statistics_last == rq->first_statistics_index)&&(rq->statistics_ring_buffer[0]==NULL)){//if we override the beginning (ring is full)
 		rq->first_statistics_index = (rq->first_statistics_index + 1) % STATISTICS_RING_BUFFER_SIZE;//first_index "points" to the next cell (current first)
