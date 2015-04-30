@@ -1376,6 +1376,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	}
 	// if the relevant process' policy is SCHED_SHORT we can change it to SHORT or OVERDUE_SHORT
 	if (p->policy == SCHED_SHORT && policy != SCHED_SHORT){
+		retval = -EPERM;
 		goto out_unlock;
 	}
 	// if we're trying to change the policy to short from anything else than OTHER, it's wrong
