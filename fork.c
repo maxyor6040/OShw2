@@ -617,6 +617,10 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	p->tux_info = NULL;
 	p->cpus_allowed_mask &= p->cpus_allowed;
 
+	//WET2
+	if(p->policy != SCHED_SHORT)
+		p->is_SHORT_OVERDUE = 0;
+
 	retval = -EAGAIN;
 	/*
 	 * Check if we are over our maximum process limit, but be sure to

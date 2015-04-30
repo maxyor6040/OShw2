@@ -912,6 +912,12 @@ void scheduler_tick(int user_tick, int system)
 
 				p->prio = effective_prio(p);//TODO make sure the prio of SHORT should be calculated just like OTHER
 				p->first_time_slice = 0;
+				//TODO REMOVE THIS
+				if(!p->number_of_trials_used){
+					printk("ATTEMPT TO DIVIDE BY ZERO");
+					++p->number_of_trials_used;
+				}
+
 				p->time_slice = p->requested_time / p->number_of_trials_used;
 
 				set_tsk_need_resched(p);
@@ -1310,14 +1316,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	unsigned long flags;
 	runqueue_t *rq;
 	task_t *p;
-
 	if (!param || pid < 0)
 		goto out_nounlock;
 
 	retval = -EFAULT;
 	if (copy_from_user(&lp, param, sizeof(struct sched_param)))
 		goto out_nounlock;
-
 	/*
 	 * We play safe to avoid deadlocks.
 	 */
@@ -1328,17 +1332,14 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	retval = -ESRCH;
 	if (!p)
 		goto out_unlock_tasklist;
-
 	/*
 	 * To be able to change p->policy safely, the apropriate
 	 * runqueue lock must be held.
 	 */
 	rq = task_rq_lock(p, &flags);
 
-	/* WET2 - CHECKS IF THE CURRENT POLICY IS SHORT AND WE WANT TO CHANGE IT TO SHORT */
-	if ((policy < 0) || ( policy == SCHED_SHORT && p->policy == SCHED_SHORT ))
+	if (policy < 0)
 		policy = p->policy;
-	/* END OF WET2 */
 	else {
 		retval = -EINVAL;
 	/* WET2 - added SCHED_SHORT to the condition */
@@ -1355,13 +1356,15 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	retval = -EINVAL;
 	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1)
 		goto out_unlock;
-	if ((policy == SCHED_OTHER) != (lp.sched_priority == 0))
+	//WET2
+	if(lp.requested_time < 0 || lp.requested_time > 5000)
 		goto out_unlock;
-	/* WET2 - CHECKING sched_priority is valid to a SHORT process*/
-	//TODO make sure this is necessary
-	if ((policy == SCHED_SHORT) != (lp.sched_priority == 0))
+	if(lp.trial_num < 1 || lp.trial_num > 50)
 		goto out_unlock;
-	/* END OF WET2 */
+	//WET2 - assuming when we change to SCHED_SHORT, the priority field is set to 0, just like in SCHED_OTHER
+	if (((policy == SCHED_SHORT) || (policy == SCHED_OTHER)) != (lp.sched_priority == 0))
+		goto out_unlock;
+
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1370,19 +1373,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
 	/* WET2 - VALID POLICY CHANGES CONDITIONS */
-	// if the process is short_overdue then don't change policy
-	if (p->is_SHORT_OVERDUE) {
+	// if the relevant process' policy is SCHED_SHORT we can't change it
+	if (p->policy == SCHED_SHORT)
 		goto out_unlock;
-	}
-	// if the relevant process' policy is SCHED_SHORT we can change it to SHORT or OVERDUE_SHORT
-	if (p->policy == SCHED_SHORT && policy != SCHED_SHORT){
-		retval = -EPERM;
-		goto out_unlock;
-	}
 	// if we're trying to change the policy to short from anything else than OTHER, it's wrong
-	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER && p->policy != SCHED_SHORT){
+	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER)
 		goto out_unlock;
-	}
 	/* END OF WET2 */
 	array = p->array;
 	if (array)
@@ -1390,16 +1386,12 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	retval = 0;
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
-	if (policy == SCHED_SHORT) {
-		if (array){
-			p->array = task_rq(p)->short_processes;
-		}
-		p->time_slice = lp.requested_time;
-	}
+	if (policy == SCHED_SHORT)
+		p->number_of_trials_used = array ? 1 : 0;
+	p->time_slice = lp.requested_time;
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
 	p->number_of_trials	= lp.trial_num;
-	p->number_of_trials_used = 0;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
 	/* END OF WET2 */
