@@ -171,10 +171,10 @@ struct runqueue {
 	//statistics_ring_buffer hold up to 150 Switch_Info's
 	Switch_Info statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE];
 
-	/*write_statistics_count(mod 150) "points" to the next cell for writing
+	/*write_statistics_last(mod 150) "points" to the next cell for writing
 	 *first_statistics_index points to the oldest stats in the buffer
 	 *switch_count counts the switches from the last created/ended process (up to 30).*/
-	int first_statistics_index, write_statistics_count, switch_count;
+	int first_statistics_index, write_statistics_last, switch_count;
 
 	//WET2 CHANGE end
 
@@ -1673,11 +1673,9 @@ out_nounlock:
  * if OVERDUE return 0
  * if SHORT but not OVERDUE return 1
  * */
-int check_is_SHORT_and_not_OVERDUE(int pid){
+inline int check_is_SHORT_and_not_OVERDUE(int pid){
 	task_t *p;
 	p = find_process_by_pid(pid);
-	runqueue_t *rq;
-	rq = this_rq();
 
 	if (!p) {//if no such process
 		return -ESRCH;
@@ -1705,46 +1703,44 @@ asmlinkage int sys_remaining_time(int pid){
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "number_of_trials_used"
 asmlinkage int sys_remaining_trials(int pid){
 	int retval = check_is_SHORT_and_not_OVERDUE(pid);
-	return ((retval==1) ? (find_process_by_pid(pid)->number_of_trials_used) : (retval));
+	return ((retval==1) ? ((find_process_by_pid(pid)->number_of_trials) - (find_process_by_pid(pid)->number_of_trials_used)) : (retval));
 }
 
 //writes all statistics to "si" address in USER MODE memory
 asmlinkage int sys_get_scheduling_statistic(struct switch_info* si){
-	//TODO retrieve this
-	/*
+
 	runqueue_t *rq;
 	rq=this_rq();
-	int first = rq->first_statistics_index;
+	int first = rq->first_statistics_index;//index of the oldest stat's
 	Switch_Info* buffer = rq->statistics_ring_buffer;
-	int fails;
-	if(write_statistics_count < STATISTICS_RING_BUFFER_SIZE){
-		fails = copy_to_user(si, buffer, write_statistics_count * sizeof(switch_info));
+	int fails;//number of bits not sent
+	if(rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1] == NULL){//if the ring buffer isn't full yet
+		fails = copy_to_user(si, buffer, rq->write_statistics_last * sizeof(switch_info));
+		return rq->write_statistics_last - (fails/sizeof(switch_info));//how many were successfully copied
 	}else{
 		fails = copy_to_user(si, &buffer[first], (STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info));
 		fails += copy_to_user(si+(STATISTICS_RING_BUFFER_SIZE - first) * sizeof(switch_info)), buffer, first * sizeof(switch_info));
 	}
-	return write_statistics_count - (fails/sizeof(switch_info));//how many were successfully copied
-	*/
-	return 0;
-
+	return STATISTICS_RING_BUFFER_SIZE - (fails/sizeof(switch_info));//how many were successfully copied
 
 }
-//enter statistics of new switch (if switch_count<30)
 
+//enter statistics of new switch (if switch_count<30)
 void add_to_statistics_buffer(struct switch_info * si){
-	/*
+
 	runqueue_t *rq;
 	rq=this_rq();
 	if(rq->switch_count>=30){//no need to add to buffer
 		return;
 	}
 	rq->switch_count++;//count switch
-	rq->statistics_ring_buffer[write_statistics_count % STATISTICS_RING_BUFFER_SIZE] = *si;//write to buffer
-	if((rq->write_statistics_count % STATISTICS_RING_BUFFER_SIZE) == rq->first_statistics_index){//if we override the beginning
+	rq->statistics_ring_buffer[write_statistics_last] = *si;//write to buffer
+
+	if((rq->write_statistics_last == rq->first_statistics_index)&&(rq->statistics_ring_buffer[0]==NULL)){//if we override the beginning (ring is full)
 		rq->first_statistics_index = (rq->first_statistics_index + 1) % STATISTICS_RING_BUFFER_SIZE;//first_index "points" to the next cell (current first)
 	}
-	rq->write_statistics_count++;//write_statistics_count(mod 150) "points" to the next cell for writing
-	*/
+	rq->write_statistics_last = (rq->write_statistics_last + 1) % STATISTICS_RING_BUFFER_SIZE;//write_statistics_last(mod 150) "points" to the next cell for writing
+
 }
 
 
@@ -1939,8 +1935,10 @@ void __init sched_init(void)
 
 		//WET2 CHANGE beginning
 		rq->first_statistics_index = 0;
-		rq->write_statistics_count = 0;
+		rq->write_statistics_last = 0;
 		rq->switch_count = 0;
+		rq->statistics_ring_buffer[0] = NULL;
+		rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1] = NULL;
 		//WET2 CHANGE end
 	}
 	/*
