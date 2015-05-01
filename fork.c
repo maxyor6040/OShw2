@@ -621,6 +621,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	p->reason_CS = -1;
 	if(p->policy != SCHED_SHORT)
 		p->is_SHORT_OVERDUE = 0;
+	//END WET2
 
 	retval = -EAGAIN;
 	/*
@@ -798,7 +799,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	++total_forks;
 	if (clone_flags & CLONE_VFORK)
 		wait_for_completion(&vfork);
-	else
+	else {
 		/*
 		 * Let the child process run first, to avoid most of the
 		 * COW overhead when the child exec()s afterwards.
@@ -807,7 +808,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		current->reason_CS = 1;
 		//WET2 CHANGE end
 		current->need_resched = 1;
-
+	}
 fork_out:
 	return retval;
 

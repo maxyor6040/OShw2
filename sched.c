@@ -1072,7 +1072,7 @@ switch_tasks:
 		prepare_arch_switch(rq);
 		//WET2 CHANGE beginnig
         if(prev->state != TASK_RUNNING){
-            prev->reason_CS == 5;//task goes to w8
+            prev->reason_CS = 5;//task goes to w8
         }
 		if(prev->reason_CS == -1){
 			printk(" \n ----------------------- \n \n ------bad reason------- \n \n ------bad reason------- \n \n ------bad reason------- \n \n ------bad reason------- \n \n ----------------------- \n ");
@@ -1937,6 +1937,10 @@ void __init init_idle(task_t *idle, int cpu)
 	idle->prio = MAX_PRIO;
 	idle->state = TASK_RUNNING;
 	idle->cpu = cpu;
+	//WET2
+	idle->reason_CS = -1;
+	idle->is_SHORT_OVERDUE = 0;
+	//END WET2
 	double_rq_unlock(idle_rq, rq);
 	set_tsk_need_resched(idle);
 	__restore_flags(flags);
