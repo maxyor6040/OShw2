@@ -938,9 +938,6 @@ void scheduler_tick(int user_tick, int system)
 		}
 	}
 out:
-	//TODO remove this
-	if (p->policy == SCHED_SHORT)
-		printk("\n-->jiffie: %d", jiffies);
 #if CONFIG_SMP
 	if (!(jiffies % BUSY_REBALANCE_TICK))
 		load_balance(rq, 0);
