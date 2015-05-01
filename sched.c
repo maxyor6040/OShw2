@@ -1075,7 +1075,7 @@ switch_tasks:
             prev->reason_CS == 5;//task goes to w8
         }
 		if(prev->reason_CS == -1){
-			printk(" /n ----------------------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ----------------------- /n ");
+			printk(" \n ----------------------- \n \n ------bad reason------- \n \n ------bad reason------- \n \n ------bad reason------- \n \n ------bad reason------- \n \n ----------------------- \n ");
 		}
 		if(prev->reason_CS == 2){//if the reason is - "task ended"
 			rq->switch_count = 0; //reset count
