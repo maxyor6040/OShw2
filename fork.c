@@ -803,6 +803,9 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 * Let the child process run first, to avoid most of the
 		 * COW overhead when the child exec()s afterwards.
 		 */
+		//WET2 CHANGE beginning
+		current->reason_CS = 1;
+		//WET2 CHANGE end
 		current->need_resched = 1;
 
 fork_out:

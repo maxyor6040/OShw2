@@ -528,6 +528,9 @@ fake_volatile:
 
 	tsk->exit_code = code;
 	exit_notify();
+	//WET2 CHANGE beginning
+	current->reason_CS = 2;
+	//WET2 CHANGE end
 	schedule();
 	BUG();
 /*

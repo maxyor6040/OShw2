@@ -473,8 +473,13 @@ same_case:		if(!rq->curr->is_SHORT_OVERDUE)
 //END WET2
 
 default_behaviour:
-		if (p->prio < rq->curr->prio)
-do_it:		resched_task(rq->curr);
+		if (p->prio < rq->curr->prio) {
+            do_it:
+                //WET2 CHANGE beginning
+                current->reason_CS = 6;
+                //WET2 CHANGE end
+                resched_task(rq->curr);
+        }
 dont_do_it:
 		success = 1;
 	}
@@ -845,15 +850,15 @@ void scheduler_tick(int user_tick, int system)
 	if ((p->array != rq->active) &&
 		(p->array != rq->short_processes) &&
 		(p->array != rq->short_overdue_processes)) {
+        //WET2 CHANGE beginning
+        current->reason_CS = 7;
+        //WET2 CHANGE end
 		set_tsk_need_resched(p);
 		return;
 	}
 	spin_lock(&rq->lock);
 	//WET2 note: SHORT_OVERDUE process WILL pass this if statement
 	if (unlikely(rt_task(p))) {
-		//WET2 - the FIFO of SHORT_OVERDUE is implement by not doing anything but checking there's no other processes
-		if((p->is_SHORT_OVERDUE) && (!only_SHORT_OVERDUE_processes_left(rq)))
-				set_tsk_need_resched(p);
 		/*
 		 * RR tasks need a special form of timeslice management.
 		 * FIFO tasks have no timeslices.
@@ -861,6 +866,9 @@ void scheduler_tick(int user_tick, int system)
 		if ((p->policy == SCHED_RR) && !--p->time_slice) {
 			p->time_slice = TASK_TIMESLICE(p);
 			p->first_time_slice = 0;
+            //WET2 CHANGE beginning
+            current->reason_CS = 7;
+            //WET2 CHANGE end
 			set_tsk_need_resched(p);
 
 			/* put it at the end of the queue: */
@@ -884,6 +892,9 @@ void scheduler_tick(int user_tick, int system)
 	if(p->policy != SCHED_SHORT) { //if process isn't SHORT
 		if (!--p->time_slice) {
 			dequeue_task(p, rq->active);
+            //WET2 CHANGE beginning
+            current->reason_CS = 7;
+            //WET2 CHANGE end
 			set_tsk_need_resched(p);
 			p->prio = effective_prio(p);
 			p->first_time_slice = 0;
@@ -909,6 +920,9 @@ void scheduler_tick(int user_tick, int system)
 
 				p->is_SHORT_OVERDUE = 1;
 				dequeue_task(p, rq->short_processes);
+                //WET2 CHANGE beginning
+                current->reason_CS = 7;
+                //WET2 CHANGE end
 				set_tsk_need_resched(p);
 				p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
 				p->first_time_slice = 0;
@@ -929,6 +943,9 @@ void scheduler_tick(int user_tick, int system)
 
 				p->time_slice = p->requested_time / p->number_of_trials_used;
 
+                //WET2 CHANGE beginning
+                current->reason_CS = 4;
+                //WET2 CHANGE end
 				set_tsk_need_resched(p);
 
 				/* put it at the end of the queue: */
@@ -1054,6 +1071,9 @@ switch_tasks:
 	
 		prepare_arch_switch(rq);
 		//WET2 CHANGE beginnig
+        if(prev->state != TASK_RUNNING){
+            prev->reason_CS == 5;//task goes to w8
+        }
 		if(prev->reason_CS == -1){
 			printk(" /n ----------------------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ----------------------- /n ");
 		}
@@ -1266,6 +1286,9 @@ void set_user_nice(task_t *p, long nice)
 		 * or increased its priority then reschedule its CPU:
 		 */
 		if ((NICE_TO_PRIO(nice) < p->static_prio) || (p == rq->curr))
+            //WET2 CHANGE beginning
+            current->reason_CS = 6;
+            //WET2 CHANGE end
 			resched_task(rq->curr);
 	}
 out_unlock:
@@ -1632,7 +1655,9 @@ asmlinkage long sys_sched_yield(void)
 
 out_unlock:
 	spin_unlock(&rq->lock);
-
+    //WET2 CHANGE beginning
+    current->reason_CS = 3;
+    //WET2 CHANGE end
 	schedule();
 
 	return 0;
