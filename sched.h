@@ -461,6 +461,7 @@ struct task_struct {
 	int number_of_trials;
 	int number_of_trials_used;
 	int is_SHORT_OVERDUE;
+	int reason_CS;//context switch reason
 };
 
 /*

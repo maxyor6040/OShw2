@@ -142,7 +142,7 @@ struct switch_info {
 typedef struct switch_info Switch_Info;
 
 #define STATISTICS_RING_BUFFER_SIZE 150
-
+void add_to_statistics_buffer(struct switch_info * si);
 //WET2 CHANGE end
 
 /*
@@ -492,6 +492,10 @@ int wake_up_process(task_t * p)
 void wake_up_forked_process(task_t * p)
 {
 	runqueue_t *rq = this_rq_lock();
+
+	//WET2 CHANGE beginning
+	rq->switch_count = 0;
+	//WET2 CHANGE end
 
 	p->state = TASK_RUNNING;
 	if (!rt_task(p)) {
@@ -1002,16 +1006,16 @@ pick_next_task:
 	}
 
 	//WET2
-	if (only_SHORT_OVERDUE_processes_left(rq)) {
-		if (rq->short_overdue_processes->nr_active > 0) {
-			idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
-			//TODO REMOVE THIS
-			if (idx != 0)
-				printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
+		if (only_SHORT_OVERDUE_processes_left(rq)) {
+			if (rq->short_overdue_processes->nr_active > 0) {
+				idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
+				//TODO REMOVE THIS
+				if (idx != 0)
+					printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
 
-			//in our implementation the idx should be the same number always - 0.
-			queue = rq->short_overdue_processes->queue + idx;
-			next = list_entry(queue->next, task_t, run_list);
+				//in our implementation the idx should be the same number always - 0.
+				queue = rq->short_overdue_processes->queue + idx;
+				next = list_entry(queue->next, task_t, run_list);
 
 			goto switch_tasks;
 		}
@@ -1052,6 +1056,25 @@ switch_tasks:
 		rq->curr = next;
 	
 		prepare_arch_switch(rq);
+		//WET2 CHANGE beginnig
+		if(prev->reason_CS == -1){
+			printk(" /n ----------------------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ------bad reason------- /n /n ----------------------- /n ");
+		}
+		if(prev->reason_CS == 2){//if the reason is - "task ended"
+			rq->switch_count = 0; //reset count
+		}
+		Switch_Info si;
+		si.next_pid = next->pid;
+		si.next_policy = next->policy;
+		si.previous_pid = prev->pid;
+		si.previous_policy = prev->policy;
+		si.reason = prev->reason_CS;
+		si.time = jiffies;
+
+		add_to_statistics_buffer(&si);
+
+		prev->reason_CS = -1;//reset reason
+		//WET2 CHANGE end
 		prev = context_switch(prev, next);
 		barrier();
 		rq = this_rq();
@@ -1747,14 +1770,6 @@ void add_to_statistics_buffer(struct switch_info * si){
 	}
 	rq->write_statistics_last = (rq->write_statistics_last + 1) % STATISTICS_RING_BUFFER_SIZE;//write_statistics_last(mod 150) "points" to the next cell for writing
 
-}
-
-
-//set switch_count to 0
-void reset_switch_count(){
-	runqueue_t *rq;
-	rq = this_rq();
-	rq->switch_count = 0;
 }
 
 //WET2 CHANGE end
