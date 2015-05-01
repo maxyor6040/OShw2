@@ -428,12 +428,13 @@ repeat_lock_task:
 		/*
 		 * If sync is set, a resched_task() is a NOOP
 		 */
-		if(rq->curr == rq->idle)
-			goto default_behaviour;
-		if ((rq->curr->policy != SCHED_SHORT)&&(p->policy != SCHED_SHORT))
-			goto default_behaviour;
 
 		//WET2
+		if(rq->curr == rq->idle)
+			goto default_behaviour;
+		if ((rq->curr->policy != SCHED_SHORT) && (p->policy != SCHED_SHORT))
+			goto default_behaviour;
+
 		switch (p->policy) {
 			case SCHED_FIFO:
 				goto same_case;
