@@ -846,6 +846,9 @@ void scheduler_tick(int user_tick, int system)
 	spin_lock(&rq->lock);
 	//WET2 note: SHORT_OVERDUE process WILL pass this if statement
 	if (unlikely(rt_task(p))) {
+		//WET2 - the FIFO of SHORT_OVERDUE is implement by not doing anything but checking there's no other processes
+		if((p->is_SHORT_OVERDUE) && (!only_SHORT_OVERDUE_processes_left(rq)))
+				set_tsk_need_resched(p);
 		/*
 		 * RR tasks need a special form of timeslice management.
 		 * FIFO tasks have no timeslices.
@@ -872,7 +875,8 @@ void scheduler_tick(int user_tick, int system)
 	 */
 	if (p->sleep_avg)
 		p->sleep_avg--;
-	if(p->array == rq->active){ //if process isn't SHORT/SHORT_OVERDUE
+	//WET2 if statement
+	if(p->policy != SCHED_SHORT) { //if process isn't SHORT
 		if (!--p->time_slice) {
 			dequeue_task(p, rq->active);
 			set_tsk_need_resched(p);
@@ -888,7 +892,7 @@ void scheduler_tick(int user_tick, int system)
 				enqueue_task(p, rq->active);
 		}
 	//WET2
-	} else {//if process is SHORT/SHORT_OVERDUE
+	} else { //if process is SHORT
 		//WET2 remove
 		if(p->policy!= SCHED_SHORT)
 			printk("SHOULD ENETER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
