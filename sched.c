@@ -1438,13 +1438,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
 	if (policy == SCHED_SHORT) { //process becomes SHORT
-		if (array) { //process is running now
-			p->number_of_trials_used = 1;
-			p->time_slice  = lp.requested_time; //TODO: find out if that's what we should do
-		} else { //process is NOT running now
-			p->number_of_trials_used == 0;
-			p->time_slice  = lp.requested_time;
-		}
+		p->number_of_trials_used = 0;
+		p->time_slice  = lp.requested_time;
+		set_tsk_need_resched(p);
 	}
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
