@@ -933,6 +933,9 @@ void scheduler_tick(int user_tick, int system)
 		}
 	}
 out:
+	//TODO remove this
+	if (p->policy == SCHED_SHORT)
+		printk("\n-->jiffie: %d", jiffies);
 #if CONFIG_SMP
 	if (!(jiffies % BUSY_REBALANCE_TICK))
 		load_balance(rq, 0);
@@ -998,24 +1001,24 @@ pick_next_task:
 	}
 
 	//WET2
-	if(only_SHORT_OVERDUE_processes_left(rq)){
-		if(rq->short_overdue_processes->nr_active > 0){
-		idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
-		//WET2 REMOVE
-		if(idx != 0)
-			printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
+	if (only_SHORT_OVERDUE_processes_left(rq)) {
+		if (rq->short_overdue_processes->nr_active > 0) {
+			idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
+			//TODO REMOVE THIS
+			if (idx != 0)
+				printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
 
-		//in our implementation the idx should be the same number always.
-		queue = rq->short_overdue_processes->queue + idx;
-		next = list_entry(queue->next, task_t, run_list);
+			//in our implementation the idx should be the same number always - 0.
+			queue = rq->short_overdue_processes->queue + idx;
+			next = list_entry(queue->next, task_t, run_list);
 
-		goto switch_tasks;
+			goto switch_tasks;
 		}
 	}
-	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
 
-	if(no_RT_processes(rq)){
-		if(rq->short_processes->nr_active > 0){
+	// if there are no RT processes, which is when we want SCHED_SHORT processes to run
+	if (no_RT_processes(rq)) {
+		if (rq->short_processes->nr_active > 0) {
 			idx = sched_find_first_bit(rq->short_processes->bitmap);
 			queue = rq->short_processes->queue + idx;
 			next = list_entry(queue->next, task_t, run_list);
@@ -1390,9 +1393,15 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	retval = 0;
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
-	if (policy == SCHED_SHORT)
-		p->number_of_trials_used = array ? 1 : 0;
-	p->time_slice = lp.requested_time;
+	if (policy == SCHED_SHORT) { //process becomes SHORT
+		if (array) { //process is running now
+			p->number_of_trials_used = 1;
+			p->time_slice  = lp.requested_time; //TODO: find out if that's what we should do
+		} else { //process is NOT running now
+			p->number_of_trials_used == 0;
+			p->time_slice  = lp.requested_time;
+		}
+	}
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
 	p->number_of_trials	= lp.trial_num;
