@@ -29,6 +29,9 @@ struct sched_param {
 // The main program 
 
 int main(int argc, char** argv){
+	if (argc % 2 == 0){
+		return 0;		//handling case of invalid amount of arguments 
+	}
 	int num_of_processes = argc / 2; 
 	for (int i=1; i <= num_of_processes ; i++){
 		int n = argv[2*i];		// gets the fibonaci number for calculation of the ith process
@@ -36,15 +39,12 @@ int main(int argc, char** argv){
 		new_param->trial_num = argv[2 * i - 1];  // gets the number of trials of the ith process
 		new_param->sched_priority = 0;
 		new_param->requested_time = 999;		// TODO: check what requested time should be
-		pid_t new_pid = fork(); 
-		if (new_pid != 0){ //son process
+		pid_t new_pid = fork();
+		if (new_pid == 0){	// if its the father process
 			setscheduler(new_pid, 4, new_param); //setting a SHORT policy
 			fibonaci(n);
-		}
-		else { 	// father process
 			wait(new_pid);
-			break;
-		}
+		}	
 	}
 	struct switch_info* si = malloc(sizeof (*si));
 	get_scheduling_statistic(si);, 
