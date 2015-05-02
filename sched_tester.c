@@ -1,6 +1,33 @@
 // sched_tester.c - Testing file 
 // Should add includes here 
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <stdio.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+#include "Wrappers.h"
+
+// Structs' declarations
+struct switch_info {
+	int previous_pid;
+	int next_pid;
+	int previous_policy;
+	int next_policy;
+	unsigned long time;
+	int reason;
+};
+
+struct sched_param {
+	int sched_priority;
+	int requested_time;
+	int trial_num;
+};
+
+
+// The main program 
+
 int main(int argc, char** argv){
 	int num_of_processes = argc / 2; 
 	for (int i=1; i <= num_of_processes ; i++){
