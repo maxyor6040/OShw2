@@ -60,7 +60,7 @@ int remaining_trials(int pid){
 }
 
 // get_scheduling_statistic wrapper
-int get_scheduling_statistic(struct switch_info *){
+int get_scheduling_statistic(struct switch_info *si){
 	long __res;
 	__asm__ volatile (
 		"movl $246, %%eax;"		// system call number -> eax
@@ -68,7 +68,7 @@ int get_scheduling_statistic(struct switch_info *){
 		"int $0x80;"			// system call invocation via interrupt 0x80  
 		"movl %%eax,%0"			// copy the value that was returned by the system call to %0 (which is the first output operand).
 		: "=m" (__res)			// output operand
-		: "m" (switch_info)			// input operand 
+		: "m" (si)			// input operand
 		: "%eax","%ebx"			// we use the following registers: eax, ebx 
 		);
 		if ((unsigned long)(__res) >= (unsigned long)(-125)) {
@@ -76,19 +76,3 @@ int get_scheduling_statistic(struct switch_info *){
 		}
 		return (int)(__res);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
- 
- 
