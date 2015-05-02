@@ -1071,15 +1071,14 @@ switch_tasks:
 	
 		prepare_arch_switch(rq);
 		//WET2 CHANGE beginnig
-        if(prev->state != TASK_RUNNING) {
-			if ((prev->state == TASK_INTERRUPTIBLE) || (prev->state == TASK_UNINTERRUPTIBLE)) {
-				prev->reason_CS = 5;//task goes to w8
-			}
-			else if(prev->reason_CS == -1){
-				printk(" \n ----------------------- \n \n ------prev->state: %d------- \n \n ------prev->reason_CS: %d------- \n \n ------not TASK_RUNNING and not TASK_INTERRUPTIBLE and not TASK_INTERRUPTIBLE------- \n \n ----------------------- \n ",
-					   prev->state, prev->reason_CS);
-			}
-        }
+		if (((prev->state == TASK_INTERRUPTIBLE) || (prev->state == TASK_UNINTERRUPTIBLE))&&(prev->reason_CS == -1)) {
+			prev->reason_CS = 5;//task goes to w8
+		}
+		else if(prev->reason_CS == -1){//TODO remove this
+			printk(" \n ------------------------- \n \n ------------------------- \n \n ------------------------- \n \n ----prev->state: %d------ \n \n ----prev->reason_CS: %d-- \n \n ------------------------- \n ",
+				   prev->state, prev->reason_CS);
+		}
+
 		if(prev->reason_CS == 2){//if the reason is - "task ended"
 			rq->switch_count = 0; //reset count
 		}
