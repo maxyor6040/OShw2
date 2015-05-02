@@ -11,16 +11,18 @@ int main(int argc, char** argv){
 		new_param->requested_time = 999;		// TODO: check what requested time should be
 		pid_t new_pid = fork(); 
 		if (new_pid != 0){ //son process
-			fibonaci(n);
 			setscheduler(new_pid, 4, new_param); //setting a SHORT policy
+			fibonaci(n);
 		}
 		else { 	// father process
 			wait(new_pid);
 			break;
 		}
 	}
-	
-	
+	struct switch_info* si = malloc(sizeof (*si));
+	get_scheduling_statistic(si);, 
+	// printing the results' data 
+	printf ("previous_pid: %d\n next_pid: %d\n previous_policy: %d, next_policy: %d, time: %lu, reason: %d", previous_pid, next_pid, previous_policy, next_policy, time, reason);
 }
 
 
