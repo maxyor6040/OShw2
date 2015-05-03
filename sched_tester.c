@@ -1,5 +1,4 @@
 // sched_tester.c - Testing file 
-// Should add includes here 
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -7,7 +6,7 @@
 #include <stdio.h>
 #include <sys/wait.h>
 #include <stdlib.h>
-#include "Wrappers.h"
+#include "hw2_syscalls.h"
 
 // Structs' declarations
 struct switch_info {
@@ -27,29 +26,36 @@ struct sched_param {
 
 
 // The main program 
+// Note that according to piaza we can assume that the number of args is valid 
 
 int main(int argc, char** argv){
-	if (argc % 2 == 0){
-		return 0;		//handling case of invalid amount of arguments 
-	}
 	int num_of_processes = argc / 2; 
 	for (int i=1; i <= num_of_processes ; i++){
-		int n = argv[2*i];		// gets the fibonaci number for calculation of the ith process
 		struct sched_param* new_param = malloc (sizeof (*new_param));
-		new_param->trial_num = argv[2 * i - 1];  // gets the number of trials of the ith process
+		// gets the fibonaci number for calculation of the ith process
+		int n = argv[2*i];		
+		// gets the number of trials of the ith process
+		new_param->trial_num = argv[2 * i - 1];  
 		new_param->sched_priority = 0;
-		new_param->requested_time = 999;		// TODO: check what requested time should be
+		// Note: according to piazza we can choose whatever we want for requested_time.
+		// It is recommended to try a short period of time and a long one. 
+		new_param->requested_time = 100;		
 		pid_t new_pid = fork();
-		if (new_pid == 0){	// if its the father process
-			setscheduler(new_pid, 4, new_param); //setting a SHORT policy
+		// if its the father process now running
+		if (new_pid != 0){	
+			setscheduler(getpid(), 4, new_param); //setting a SHORT policy
 			fibonaci(n);
 			wait(new_pid);
 		}	
 	}
-	struct switch_info* si = malloc(sizeof (*si));
+	struct switch_info* si = malloc(STATISTICS_RING_BUFFER_SIZE * sizeof (*si));
 	get_scheduling_statistic(si);, 
 	// printing the results' data 
-	printf ("previous_pid: %d\n next_pid: %d\n previous_policy: %d, next_policy: %d, time: %lu, reason: %d", previous_pid, next_pid, previous_policy, next_policy, time, reason);
+	for (int i=0; i < STATISTICS_RING_BUFFER_SIZE; i++){
+		printf ("=========================");
+		printf ("No.%d: prev_pid: %d,next_pid: %d, prev_policy: %d, next_policy: %d, time: %d, reason: %d \n",previous_pid, next_pid, previous_policy, next_policy, time, reason);
+		printf ("=========================");
+	}
 }
 
 
