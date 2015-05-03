@@ -1444,9 +1444,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((policy == SCHED_SHORT) && first_entrance) { //process becomes SHORT
 		p->number_of_trials_used = 0;
 		p->time_slice  = lp.requested_time;
-        //WET2 CHANGE beginning
         current->reason_CS = 6;
-        //WET2 CHANGE end
 		set_tsk_need_resched(p);
 	}
 	p->rt_priority = lp.sched_priority;
