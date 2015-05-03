@@ -832,6 +832,12 @@ void scheduler_tick(int user_tick, int system)
 	runqueue_t *rq = this_rq();
 	task_t *p = current;
 
+	int diff = jiffies - p->start_time;
+	if(rq->short_processes->nr_active || rq->short_overdue_processes->nr_active)
+		printk("->lifespan: %d, policy: %d, pid: %d,  short_count: %d, overdue_count: %d \n trials: %d trials used: %d \n",
+			   diff, p->policy, p->pid, rq->short_processes->nr_active,
+			   rq->short_overdue_processes->nr_active, p->number_of_trials, p->number_of_trials_used);
+
 	if (p == rq->idle) {
 		if (local_bh_count(cpu) || local_irq_count(cpu) > 1)
 			kstat.per_cpu_system[cpu] += system;
@@ -846,6 +852,7 @@ void scheduler_tick(int user_tick, int system)
 		kstat.per_cpu_user[cpu] += user_tick;
 	kstat.per_cpu_system[cpu] += system;
 
+	//WET2 if extended
 	/* Task might have expired already, but not scheduled off yet */
 	if ((p->array != rq->active) &&
 		(p->array != rq->short_processes) &&
@@ -915,7 +922,7 @@ void scheduler_tick(int user_tick, int system)
 
 		if((!p->is_SHORT_OVERDUE) && (!--p->time_slice)) {
 			//if process should become SHORT_OVERDUE
-			if((++p->number_of_trials_used > p->number_of_trials)||
+			if((++p->number_of_trials_used >= p->number_of_trials) || //WET2 TODO make sure it's >= and not >
 				(!p->requested_time/p->number_of_trials_used)) {
 
 				p->is_SHORT_OVERDUE = 1;
@@ -932,8 +939,6 @@ void scheduler_tick(int user_tick, int system)
 			//if process remains SHORT
 			else {
 				//Implemented RR for SCHED_SHORT
-
-				p->prio = effective_prio(p);//TODO make sure the prio of SHORT should be calculated just like OTHER
 				p->first_time_slice = 0;
 				//TODO REMOVE THIS
 				if(!p->number_of_trials_used){
@@ -950,6 +955,7 @@ void scheduler_tick(int user_tick, int system)
 
 				/* put it at the end of the queue: */
 				dequeue_task(p, rq->short_processes);
+				p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER
 				enqueue_task(p, rq->short_processes);
 			}
 		}
@@ -1020,18 +1026,18 @@ pick_next_task:
 	}
 
 	//WET2
-		if (only_SHORT_OVERDUE_processes_left(rq)) {
-			if (rq->short_overdue_processes->nr_active > 0) {
-				idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
-				//TODO REMOVE THIS
-				if (idx != 0)
-					printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
+	if (only_SHORT_OVERDUE_processes_left(rq)) {
+		if (rq->short_overdue_processes->nr_active > 0) {
+			idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
+			//TODO REMOVE THIS
+			if (idx != 0)
+				printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
 
-				//in our implementation the idx should be the same number always - 0.
-				queue = rq->short_overdue_processes->queue + idx;
-				next = list_entry(queue->next, task_t, run_list);
+			//in our implementation the idx should be the same number always - 0.
+			queue = rq->short_overdue_processes->queue + idx;
+			next = list_entry(queue->next, task_t, run_list);
 
-			goto switch_tasks;
+		goto switch_tasks;
 		}
 	}
 

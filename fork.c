@@ -789,7 +789,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		(!p->p_pptr->is_SHORT_OVERDUE)){
 		int father_left = p->number_of_trials- p->number_of_trials_used;
 		p->number_of_trials_used = p->number_of_trials -
-				father_left%2 ? father_left/2+1 : father_left/2;
+				((father_left%2) ? (father_left/2 + 1) : (father_left/2));
 		p->p_pptr->number_of_trials_used = p->number_of_trials - father_left/2;
 
 	}
