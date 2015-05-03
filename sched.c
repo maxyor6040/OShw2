@@ -1390,9 +1390,11 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 * runqueue lock must be held.
 	 */
 	rq = task_rq_lock(p, &flags);
-
-	if (policy < 0)
+	int first_entrance = 1;
+	if (policy < 0) {
 		policy = p->policy;
+		first_entrance = 0; 
+		}
 	else {
 		retval = -EINVAL;
 	/* WET2 - added SCHED_SHORT to the condition */
@@ -1439,7 +1441,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	retval = 0;
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
-	if (policy == SCHED_SHORT) { //process becomes SHORT
+	if ((policy == SCHED_SHORT) && (!first_entrance)) { //process becomes SHORT
 		p->number_of_trials_used = 0;
 		p->time_slice  = lp.requested_time;
         //WET2 CHANGE beginning
