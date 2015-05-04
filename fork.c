@@ -732,10 +732,15 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	__save_flags(flags);
 	__cli();
 	if (!current->time_slice) {
+		//WET2 TODO remove
 		printk("-->Policy:%d CurrPolicy:%d PisOVERDUE:%d CurrisOverDUE:%d Ptime:%d Currtime:%d\n",
 		p->policy, p->is_SHORT_OVERDUE, current->is_SHORT_OVERDUE,  p->time_slice, current->time_slice);
 		BUG();
 	}
+	//WET2 TODO remove
+	if ((current->policy != p->policy) || (p->is_SHORT_OVERDUE != current->is_SHORT_OVERDUE))
+		printk("THATS FUCKED UP\n");
+
 	p->time_slice = (current->time_slice + 1) >> 1;
 	p->first_time_slice = 1;
 	current->time_slice >>= 1;
