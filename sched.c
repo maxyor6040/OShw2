@@ -1089,7 +1089,8 @@ switch_tasks:
 	
 		prepare_arch_switch(rq);
 		//region WET2 CHANGE maxim
-		if (((prev->state == TASK_INTERRUPTIBLE) || (prev->state == TASK_UNINTERRUPTIBLE))&&(prev->reason_CS == 8)) {
+		//TODO WET2 maybe remove "(prev->reason_CS == 8)" from if
+		if (((prev->state == TASK_INTERRUPTIBLE) || (prev->state == TASK_UNINTERRUPTIBLE) ||(prev->state == TASK_STOPPED))&&(prev->reason_CS == 8)) {
 			if (current->reason_CS > 5) {
 				current->reason_CS = 5;
 			}//task goes to wait
