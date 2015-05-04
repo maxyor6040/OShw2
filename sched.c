@@ -1076,7 +1076,7 @@ switch_tasks:
 		rq->curr = next;
 	
 		prepare_arch_switch(rq);
-		//WET2 CHANGE beginnig
+		//region WET2 CHANGE maxim
 		if (((prev->state == TASK_INTERRUPTIBLE) || (prev->state == TASK_UNINTERRUPTIBLE))&&(prev->reason_CS == -1)) {
 			prev->reason_CS = 5;//task goes to w8
 		}
@@ -1098,8 +1098,8 @@ switch_tasks:
 
 		add_to_statistics_buffer(&si);
 
-		prev->reason_CS = -1;//reset reason
-		//WET2 CHANGE end
+		prev->reason_CS = 8;//reset reason - 8 means nothing
+		//endregion
 		prev = context_switch(prev, next);
 		barrier();
 		rq = this_rq();
@@ -1950,7 +1950,7 @@ void __init init_idle(task_t *idle, int cpu)
 	idle->state = TASK_RUNNING;
 	idle->cpu = cpu;
 	//WET2
-	idle->reason_CS = -1;
+	idle->reason_CS = 8;//reset reason - 8 means nothing
 	idle->is_SHORT_OVERDUE = 0;
 	//END WET2
 	double_rq_unlock(idle_rq, rq);

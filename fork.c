@@ -618,7 +618,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	p->cpus_allowed_mask &= p->cpus_allowed;
 
 	//WET2
-	p->reason_CS = -1;
+	p->reason_CS = 8;//reset reason - 8 means nothing
 	if(p->policy != SCHED_SHORT)
 		p->is_SHORT_OVERDUE = 0;
 	//END WET2
