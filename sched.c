@@ -834,13 +834,22 @@ void scheduler_tick(int user_tick, int system)
 	runqueue_t *rq = this_rq();
 	task_t *p = current;
 /*
+<<<<<<< HEAD
  * //TODO WET2 REMOVE THIS
+=======
+
+	//WET2 TODO remove this
+>>>>>>> origin/test
 	int diff = jiffies - p->start_time;
 	if(rq->short_processes->nr_active || rq->short_overdue_processes->nr_active)
 		printk("->lifespan: %d, policy: %d, pid: %d,  short_count: %d, overdue_count: %d \n trials: %d trials used: %d \n",
 			   diff, p->policy, p->pid, rq->short_processes->nr_active,
 			   rq->short_overdue_processes->nr_active, p->number_of_trials, p->number_of_trials_used);
 */
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/test
 	if (p == rq->idle) {
 		if (local_bh_count(cpu) || local_irq_count(cpu) > 1)
 			kstat.per_cpu_system[cpu] += system;
@@ -928,6 +937,7 @@ void scheduler_tick(int user_tick, int system)
 		//WET2 remove
 		if(p->policy!= SCHED_SHORT)
 			printk("SHOULD ENETER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
+<<<<<<< HEAD
 
 		if(!p->is_SHORT_OVERDUE){
 			if(!--p->time_slice){//WET2 TODO note: this will decrease when
@@ -947,6 +957,19 @@ void scheduler_tick(int user_tick, int system)
 					p->first_time_slice = 0;
 					p->time_slice = -1; //just 'cause we don't use time_slice in SHORT_OVERDUE
 					enqueue_task(p, rq->short_overdue_processes);
+=======
+		
+		if((!p->is_SHORT_OVERDUE) && (!--p->time_slice)) {
+			//if process should become SHORT_OVERDUE
+			if((++p->number_of_trials_used >= p->number_of_trials) || //WET2 TODO make sure it's >= and not >
+				(!p->requested_time/p->number_of_trials_used)) {
+
+				p->is_SHORT_OVERDUE = 1;
+				dequeue_task(p, rq->short_processes);
+                //WET2 CHANGE beginning
+				if (current->reason_CS > 7) {
+					current->reason_CS = 7;
+>>>>>>> origin/test
 				}
 				//if process remains SHORT
 				else {
@@ -972,6 +995,24 @@ void scheduler_tick(int user_tick, int system)
 					p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER
 					enqueue_task(p, rq->short_processes);
 				}
+<<<<<<< HEAD
+=======
+
+				p->time_slice = p->requested_time / p->number_of_trials_used;
+
+                //WET2 CHANGE beginning
+				if (current->reason_CS > 4) {
+					current->reason_CS = 4;
+				}
+                //WET2 CHANGE end
+				set_tsk_need_resched(p);
+
+				/* put it at the end of the queue: */
+				dequeue_task(p, rq->short_processes);
+				p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER
+				enqueue_task(p, rq->short_processes);
+>>>>>>> origin/test
+>>>>>>> origin/test
 			}
 		}
 	}
