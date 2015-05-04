@@ -33,9 +33,9 @@ int main(int argc, char** argv){
 	for (int i=1; i <= num_of_processes ; i++){
 		struct sched_param* new_param = malloc (sizeof (*new_param));
 		// gets the fibonaci number for calculation of the ith process
-		int n = argv[2*i];		
+		int n = atoi(argv[2*i]);		
 		// gets the number of trials of the ith process
-		new_param->trial_num = argv[2 * i - 1];  
+		new_param->trial_num = atoi(argv[2 * i - 1]);  
 		new_param->sched_priority = 0;
 		// Note: according to piazza we can choose whatever we want for requested_time.
 		// It is recommended to try a short period of time and a long one. 
@@ -48,12 +48,12 @@ int main(int argc, char** argv){
 			wait(new_pid);
 		}	
 	}
-	struct switch_info* si = malloc(STATISTICS_RING_BUFFER_SIZE * sizeof (*si));
-	get_scheduling_statistic(si);, 
+	struct switch_info* si = malloc(150 * sizeof (*si));
+	get_scheduling_statistic(si); 
 	// printing the results' data 
-	for (int i=0; i < STATISTICS_RING_BUFFER_SIZE; i++){
+	for (int i=0; i < 150; i++){
 		printf ("=========================");
-		printf ("No.%d: prev_pid: %d,next_pid: %d, prev_policy: %d, next_policy: %d, time: %d, reason: %d \n",previous_pid, next_pid, previous_policy, next_policy, time, reason);
+		printf ("No.%d: prev_pid: %d,next_pid: %d, prev_policy: %d, next_policy: %d, time: %d, reason: %d \n",si[i].previous_pid, si[i].next_pid, si[i].previous_policy, si[i].next_policy, si[i].time, si[i].reason);
 		printf ("=========================");
 	}
 }
