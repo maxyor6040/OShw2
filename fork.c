@@ -731,7 +731,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	 */
 	__save_flags(flags);
 	__cli();
-	if (!current->time_slice){
+	if (!current->time_slice) {
 		printk("-->Policy:%d CurrPolicy:%d PisOVERDUE:%d CurrisOverDUE:%d Ptime:%d Currtime:%d\n",
 		p->policy, p->is_SHORT_OVERDUE, current->is_SHORT_OVERDUE,  p->time_slice, current->time_slice);
 		BUG();

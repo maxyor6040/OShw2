@@ -869,7 +869,10 @@ void scheduler_tick(int user_tick, int system)
 		return;
 	}
 	spin_lock(&rq->lock);
-	//WET2 note: SHORT_OVERDUE process WILL pass this if statement
+
+	if(p->policy == SCHED_SHORT && p->is_SHORT_OVERDUE)
+		goto out;
+
 	if (unlikely(rt_task(p))) {
 		/*
 		 * RR tasks need a special form of timeslice management.
@@ -889,7 +892,6 @@ void scheduler_tick(int user_tick, int system)
 			dequeue_task(p, rq->active);
 			enqueue_task(p, rq->active);
 		}
-		//WET2 note: it will goto out. I think that's what we want since SHORT_OVERDUE == FIFO
 		goto out;
 	}
 	/*
@@ -927,12 +929,12 @@ void scheduler_tick(int user_tick, int system)
 	} else { //if process is SHORT
 		//WET2 remove
 		if(p->policy!= SCHED_SHORT)
-			printk("SHOULD ENETER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
+			printk("SHOULD ENTER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
 
 		if(!p->is_SHORT_OVERDUE){
-			if(!--p->time_slice){//WET2 TODO note: this will decrease when
+			if(!--p->time_slice){
 				//if process should become SHORT_OVERDUE
-				if((++p->number_of_trials_used >= p->number_of_trials) || //WET2 TODO make sure it's >= and not >
+				if ((++p->number_of_trials_used > p->number_of_trials) ||
 					(!p->requested_time/p->number_of_trials_used)) {
 
 					p->is_SHORT_OVERDUE = 1;
@@ -945,11 +947,10 @@ void scheduler_tick(int user_tick, int system)
 					set_tsk_need_resched(p);
 					p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
 					p->first_time_slice = 0;
-					p->time_slice = -1; //just 'cause we don't use time_slice in SHORT_OVERDUE
+					p->time_slice = 10; //just 'cause we don't use time_slice in SHORT_OVERDUE
 					enqueue_task(p, rq->short_overdue_processes);
-				}
-				//if process remains SHORT
-				else {
+
+				} else { //if process remains SHORT
 					//Implemented RR for SCHED_SHORT
 					p->first_time_slice = 0;
 					//TODO REMOVE THIS
@@ -1468,7 +1469,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
 	if ((policy == SCHED_SHORT) && first_entrance) { //process becomes SHORT
-		p->number_of_trials_used = 0;
+		p->number_of_trials_used = 1;
 		p->time_slice  = lp.requested_time;
 		if (current->reason_CS > 6) {
 			current->reason_CS = 6;
