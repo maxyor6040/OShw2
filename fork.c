@@ -731,8 +731,11 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	 */
 	__save_flags(flags);
 	__cli();
-	if (!current->time_slice)
+	if (!current->time_slice){
+		printk("-->Policy:%d CurrPolicy:%d PisOVERDUE:%d CurrisOverDUE:%d Ptime:%d Currtime:%d\n",
+		p->policy, p->is_SHORT_OVERDUE, current->is_SHORT_OVERDUE,  p->time_slice, current->time_slice);
 		BUG();
+	}
 	p->time_slice = (current->time_slice + 1) >> 1;
 	p->first_time_slice = 1;
 	current->time_slice >>= 1;
@@ -787,7 +790,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	// "p" should be the "son" process, handling the case of a SHORT process (not overdue) 
 	if ((p->p_pptr->policy == SCHED_SHORT) &&
 		(!p->p_pptr->is_SHORT_OVERDUE)){
-		int father_left = p->number_of_trials- p->number_of_trials_used;
+		int father_left = p->number_of_trials - p->number_of_trials_used;
 		p->number_of_trials_used = p->number_of_trials -
 				((father_left%2) ? (father_left/2 + 1) : (father_left/2));
 		p->p_pptr->number_of_trials_used = p->number_of_trials - father_left/2;

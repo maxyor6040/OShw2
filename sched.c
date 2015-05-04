@@ -831,12 +831,15 @@ void scheduler_tick(int user_tick, int system)
 	int cpu = smp_processor_id();
 	runqueue_t *rq = this_rq();
 	task_t *p = current;
+/*
 
+	//WET2 TODO remove this
 	int diff = jiffies - p->start_time;
 	if(rq->short_processes->nr_active || rq->short_overdue_processes->nr_active)
 		printk("->lifespan: %d, policy: %d, pid: %d,  short_count: %d, overdue_count: %d \n trials: %d trials used: %d \n",
 			   diff, p->policy, p->pid, rq->short_processes->nr_active,
 			   rq->short_overdue_processes->nr_active, p->number_of_trials, p->number_of_trials_used);
+*/
 
 	if (p == rq->idle) {
 		if (local_bh_count(cpu) || local_irq_count(cpu) > 1)
@@ -920,43 +923,45 @@ void scheduler_tick(int user_tick, int system)
 		if(p->policy!= SCHED_SHORT)
 			printk("SHOULD ENETER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
 
-		if((!p->is_SHORT_OVERDUE) && (!--p->time_slice)) {
-			//if process should become SHORT_OVERDUE
-			if((++p->number_of_trials_used >= p->number_of_trials) || //WET2 TODO make sure it's >= and not >
-				(!p->requested_time/p->number_of_trials_used)) {
+		if (!p->is_SHORT_OVERDUE) {
+			if (!--p->time_slice) { //WET2 TODO note: this will decrease when process is SHORT_OVERDUE. probably harmless.
+				//if process should become SHORT_OVERDUE
+				if ((++p->number_of_trials_used >= p->number_of_trials) || //WET2 TODO make sure it's >= and not >
+				   (!p->requested_time / p->number_of_trials_used)) {
 
-				p->is_SHORT_OVERDUE = 1;
-				dequeue_task(p, rq->short_processes);
-                //WET2 CHANGE beginning
-                current->reason_CS = 7;
-                //WET2 CHANGE end
-				set_tsk_need_resched(p);
-				p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
-				p->first_time_slice = 0;
-				p->time_slice = -1; //just 'cause we don't use time_slice in SHORT_OVERDUE
-				enqueue_task(p, rq->short_overdue_processes);
-			}
-			//if process remains SHORT
-			else {
-				//Implemented RR for SCHED_SHORT
-				p->first_time_slice = 0;
-				//TODO REMOVE THIS
-				if(!p->number_of_trials_used){
-					printk("ATTEMPT TO DIVIDE BY ZERO");
-					++p->number_of_trials_used;
+					p->is_SHORT_OVERDUE = 1;
+					dequeue_task(p, rq->short_processes);
+                    //WET2 CHANGE beginning
+                    current->reason_CS = 7;
+                    //WET2 CHANGE end
+					set_tsk_need_resched(p);
+					p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
+					p->first_time_slice = 0;
+					p->time_slice = -1; //just 'cause we don't use time_slice in SHORT_OVERDUE
+					enqueue_task(p, rq->short_overdue_processes);
 				}
+					//if process remains SHORT
+				else {
+					//Implemented RR for SCHED_SHORT
+					p->first_time_slice = 0;
+					//TODO REMOVE THIS
+					if (!p->number_of_trials_used) {
+						printk("ATTEMPT TO DIVIDE BY ZERO");
+						++p->number_of_trials_used;
+					}
 
-				p->time_slice = p->requested_time / p->number_of_trials_used;
+					p->time_slice = p->requested_time / p->number_of_trials_used;
 
-                //WET2 CHANGE beginning
-                current->reason_CS = 4;
-                //WET2 CHANGE end
-				set_tsk_need_resched(p);
+                    //WET2 CHANGE beginning
+                    current->reason_CS = 4;
+                    //WET2 CHANGE end
+					set_tsk_need_resched(p);
 
-				/* put it at the end of the queue: */
-				dequeue_task(p, rq->short_processes);
-				p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER
-				enqueue_task(p, rq->short_processes);
+					/* put it at the end of the queue: */
+					dequeue_task(p, rq->short_processes);
+					p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER
+					enqueue_task(p, rq->short_processes);
+				}
 			}
 		}
 	}
