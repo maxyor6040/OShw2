@@ -48,12 +48,12 @@ int main(int argc, char** argv){
 			wait(new_pid);
 		}	
 	}
-	struct switch_info* si = malloc(STATISTICS_RING_BUFFER_SIZE * sizeof (*si));
-	get_scheduling_statistic(si);, 
+	struct switch_info* si = malloc(150 * sizeof (*si));
+	get_scheduling_statistic(si); 
 	// printing the results' data 
-	for (int i=0; i < STATISTICS_RING_BUFFER_SIZE; i++){
+	for (int i=0; i < 150; i++){
 		printf ("=========================");
-		printf ("No.%d: prev_pid: %d,next_pid: %d, prev_policy: %d, next_policy: %d, time: %d, reason: %d \n",previous_pid, next_pid, previous_policy, next_policy, time, reason);
+		printf ("No.%d: prev_pid: %d,next_pid: %d, prev_policy: %d, next_policy: %d, time: %d, reason: %d \n",si[i].previous_pid, si[i].next_pid, si[i].previous_policy, si[i].next_policy, si[i].time, si[i].reason);
 		printf ("=========================");
 	}
 }
