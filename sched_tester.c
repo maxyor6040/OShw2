@@ -33,9 +33,9 @@ int main(int argc, char** argv){
 	for (int i=1; i <= num_of_processes ; i++){
 		struct sched_param* new_param = malloc (sizeof (*new_param));
 		// gets the fibonaci number for calculation of the ith process
-		int n = argv[2*i];		
+		int n = atoi(argv[2*i]);		
 		// gets the number of trials of the ith process
-		new_param->trial_num = argv[2 * i - 1];  
+		new_param->trial_num = atoi(argv[2 * i - 1]);  
 		new_param->sched_priority = 0;
 		// Note: according to piazza we can choose whatever we want for requested_time.
 		// It is recommended to try a short period of time and a long one. 
