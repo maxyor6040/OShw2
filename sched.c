@@ -476,7 +476,9 @@ default_behaviour:
 		if (p->prio < rq->curr->prio) {
             do_it:
                 //WET2 CHANGE beginning
-                current->reason_CS = 6;
+				if (current->reason_CS > 6) {
+					current->reason_CS = 6;
+				}
                 //WET2 CHANGE end
                 resched_task(rq->curr);
         }
@@ -858,8 +860,10 @@ void scheduler_tick(int user_tick, int system)
 		(p->array != rq->short_processes) &&
 		(p->array != rq->short_overdue_processes)) {
         //WET2 CHANGE beginning
-        current->reason_CS = 7;
-        //WET2 CHANGE end
+		if (current->reason_CS > 7) {
+			current->reason_CS = 7;
+		}
+		//WET2 CHANGE end
 		set_tsk_need_resched(p);
 		return;
 	}
@@ -874,7 +878,9 @@ void scheduler_tick(int user_tick, int system)
 			p->time_slice = TASK_TIMESLICE(p);
 			p->first_time_slice = 0;
             //WET2 CHANGE beginning
-            current->reason_CS = 7;
+			if (current->reason_CS > 7) {
+				current->reason_CS = 7;
+			}
             //WET2 CHANGE end
 			set_tsk_need_resched(p);
 
@@ -900,7 +906,9 @@ void scheduler_tick(int user_tick, int system)
 		if (!--p->time_slice) {
 			dequeue_task(p, rq->active);
             //WET2 CHANGE beginning
-            current->reason_CS = 7;
+			if (current->reason_CS > 7) {
+				current->reason_CS = 7;
+			}
             //WET2 CHANGE end
 			set_tsk_need_resched(p);
 			p->prio = effective_prio(p);
@@ -928,7 +936,9 @@ void scheduler_tick(int user_tick, int system)
 				p->is_SHORT_OVERDUE = 1;
 				dequeue_task(p, rq->short_processes);
                 //WET2 CHANGE beginning
-                current->reason_CS = 7;
+				if (current->reason_CS > 7) {
+					current->reason_CS = 7;
+				}
                 //WET2 CHANGE end
 				set_tsk_need_resched(p);
 				p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
@@ -949,7 +959,9 @@ void scheduler_tick(int user_tick, int system)
 				p->time_slice = p->requested_time / p->number_of_trials_used;
 
                 //WET2 CHANGE beginning
-                current->reason_CS = 4;
+				if (current->reason_CS > 4) {
+					current->reason_CS = 4;
+				}
                 //WET2 CHANGE end
 				set_tsk_need_resched(p);
 
@@ -1077,10 +1089,12 @@ switch_tasks:
 	
 		prepare_arch_switch(rq);
 		//region WET2 CHANGE maxim
-		if (((prev->state == TASK_INTERRUPTIBLE) || (prev->state == TASK_UNINTERRUPTIBLE))&&(prev->reason_CS == -1)) {
-			prev->reason_CS = 5;//task goes to w8
+		if (((prev->state == TASK_INTERRUPTIBLE) || (prev->state == TASK_UNINTERRUPTIBLE))&&(prev->reason_CS == 8)) {
+			if (current->reason_CS > 5) {
+				current->reason_CS = 5;
+			}//task goes to wait
 		}
-		else if(prev->reason_CS == -1){//TODO remove this
+		else if(prev->reason_CS == 8){//TODO remove this
 			printk(" \n ------------------------- \n \n ------------------------- \n \n ------------------------- \n \n ----prev->state: %d------ \n \n ----prev->reason_CS: %d-- \n \n ------------------------- \n ",
 				   prev->state, prev->reason_CS);
 		}
@@ -1295,7 +1309,9 @@ void set_user_nice(task_t *p, long nice)
 		 */
 		if ((NICE_TO_PRIO(nice) < p->static_prio) || (p == rq->curr))
             //WET2 CHANGE beginning
-            current->reason_CS = 6;
+		if (current->reason_CS > 6) {
+			current->reason_CS = 6;
+		}
             //WET2 CHANGE end
 			resched_task(rq->curr);
 	}
@@ -1450,7 +1466,9 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((policy == SCHED_SHORT) && first_entrance) { //process becomes SHORT
 		p->number_of_trials_used = 0;
 		p->time_slice  = lp.requested_time;
-        current->reason_CS = 6;
+		if (current->reason_CS > 6) {
+			current->reason_CS = 6;
+		}
 		set_tsk_need_resched(p);
 	}
 	p->rt_priority = lp.sched_priority;
@@ -1667,7 +1685,9 @@ asmlinkage long sys_sched_yield(void)
 out_unlock:
 	spin_unlock(&rq->lock);
     //WET2 CHANGE beginning
-    current->reason_CS = 3;
+	if (current->reason_CS > 3) {
+		current->reason_CS = 3;
+	}
     //WET2 CHANGE end
 	schedule();
 
