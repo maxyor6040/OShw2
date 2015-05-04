@@ -9,14 +9,6 @@
 #include "hw2_syscalls.h"
 
 // Structs' declarations
-struct switch_info {
-	int previous_pid;
-	int next_pid;
-	int previous_policy;
-	int next_policy;
-	unsigned long time;
-	int reason;
-};
 
 struct sched_param {
 	int sched_priority;
@@ -24,6 +16,7 @@ struct sched_param {
 	int trial_num;
 };
 
+int fibonaci(int n); 
 
 // The main program 
 // Note that according to piaza we can assume that the number of args is valid 
@@ -43,9 +36,9 @@ int main(int argc, char** argv){
 		pid_t new_pid = fork();
 		// if its the father process now running
 		if (new_pid != 0){	
-			setscheduler(getpid(), 4, new_param); //setting a SHORT policy
+			sched_setscheduler(getpid(), 4, new_param); //setting a SHORT policy
 			fibonaci(n);
-			wait(new_pid);
+			while (wait(NULL) != -1);
 		}	
 	}
 	struct switch_info* si = malloc(150 * sizeof (*si));
