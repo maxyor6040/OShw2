@@ -1784,7 +1784,7 @@ asmlinkage int sys_is_SHORT(int pid) {
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "time_slice"
 asmlinkage int sys_remaining_time(int pid){
 	int retval = check_is_SHORT_and_not_OVERDUE(pid);
-	return ((retval==1) ? (find_process_by_pid(pid)->time_slice) : (retval));
+	return ((retval==1) ? ((((find_process_by_pid(pid)->time_slice))*HZ)/1000) : (retval));
 }
 
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "number_of_trials_used"
