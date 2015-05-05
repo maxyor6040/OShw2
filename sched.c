@@ -988,7 +988,12 @@ void scheduling_functions_start_here(void) { }
 
 //WET2
 static inline int only_SHORT_OVERDUE_processes_left(runqueue_t *rq)
-{return !(rq->nr_running - rq->short_overdue_processes->nr_active);}
+{
+	//WET2 TODO remove
+	if((!(rq->nr_running - rq->short_overdue_processes->nr_active))&&(rq->expired->nr_active!=0))
+		printk("SHORT_OVERDUE PROCESSES WORK BEFORE THEY SHOULD!");
+	return !(rq->nr_running - rq->short_overdue_processes->nr_active);
+}
 static inline int no_RT_processes(runqueue_t *rq)
 {return sched_find_first_bit(rq->active->bitmap) > MAX_RT_PRIO;}
 //END WET2
