@@ -811,6 +811,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 			
 	wake_up_forked_process(p);	/* do this last */
 	++total_forks;
+
 	if (clone_flags & CLONE_VFORK)
 		wait_for_completion(&vfork);
 	else {
@@ -818,6 +819,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		 * Let the child process run first, to avoid most of the
 		 * COW overhead when the child exec()s afterwards.
 		 */
+
 		//WET2 CHANGE beginning
 		if (current->reason_CS > 1) {
 			current->reason_CS = 1;
