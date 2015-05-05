@@ -517,19 +517,19 @@ void wake_up_forked_process(task_t * p)
 			p->prio = effective_prio(p); //WET2 TODO make sure we want this to happen only when a process isn't SHORT
 	}
 	p->cpu = smp_processor_id();
-	//WET2 - short process should be treated differently
-	if(p->policy != SCHED_SHORT) {
+	//WET2 - short process should be treated differently supposingly
+//	if(p->policy != SCHED_SHORT) {
 		activate_task(p, rq);
-	} else {
-		struct task_struct *father = p->p_pptr;
-		deactivate_task(father, rq);
-		activate_task(father, rq);
-		activate_task(p, rq);
-		if (current->reason_CS > 1) {
-			current->reason_CS = 1;
-		}
-		current->need_resched = 1;
-	}
+//	} else {
+//		struct task_struct *father = p->p_pptr;
+//		deactivate_task(father, rq);
+//		activate_task(father, rq);
+//		activate_task(p, rq);
+//		if (current->reason_CS > 1) {
+//			current->reason_CS = 1;
+//		}
+//		current->need_resched = 1;
+//	}
 	//WET2 END
 	rq_unlock(rq);
 }

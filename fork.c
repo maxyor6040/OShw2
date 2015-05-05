@@ -827,6 +827,13 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		//WET2 CHANGE end
 		current->need_resched = 1;
 	}
+	//WET2
+	if (current->reason_CS > 1) {
+		current->reason_CS = 1;
+	}
+	//WET2 CHANGE end
+	current->need_resched = 1;
+	//END WET2
 fork_out:
 	return retval;
 
