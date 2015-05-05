@@ -739,7 +739,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	}
 	//WET2 TODO remove
 	if ((current->policy != p->policy) || (p->is_SHORT_OVERDUE != current->is_SHORT_OVERDUE))
-		printk("THATS FUCKED UP\n");
+		printk("THATS FUCKED UP the father differs from the son\n");
 
 	p->time_slice = (current->time_slice + 1) >> 1;
 	p->first_time_slice = 1;

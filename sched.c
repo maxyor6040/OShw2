@@ -256,7 +256,13 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 
 static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 {
-	list_add_tail(&p->run_list, array->queue + p->prio);
+	//WET2
+	if ((p->reason_CS == 1) && (p->policy == SCHED_SHORT)) {
+		list_add(&p->run_list, array->queue + p->prio);
+	} else {
+		list_add_tail(&p->run_list, array->queue + p->prio);
+	}
+	//END WET2
 	__set_bit(p->prio, array->bitmap);
 	array->nr_active++;
 	p->array = array;
