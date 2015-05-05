@@ -256,13 +256,7 @@ static inline void dequeue_task(struct task_struct *p, prio_array_t *array)
 
 static inline void enqueue_task(struct task_struct *p, prio_array_t *array)
 {
-	//WET2
-	if ((p->reason_CS == 1) && (p->policy == SCHED_SHORT)) {
-		list_add(&p->run_list, array->queue + p->prio);
-	} else {
-		list_add_tail(&p->run_list, array->queue + p->prio);
-	}
-	//END WET2
+	list_add_tail(&p->run_list, array->queue + p->prio);
 	__set_bit(p->prio, array->bitmap);
 	array->nr_active++;
 	p->array = array;
@@ -519,11 +513,24 @@ void wake_up_forked_process(task_t * p)
 		 */
 		current->sleep_avg = current->sleep_avg * PARENT_PENALTY / 100;
 		p->sleep_avg = p->sleep_avg * CHILD_PENALTY / 100;
-		p->prio = effective_prio(p);
+		if(p->policy != SCHED_SHORT)
+			p->prio = effective_prio(p); //WET2 TODO make sure we want this to happen only when a process isn't SHORT
 	}
 	p->cpu = smp_processor_id();
-	activate_task(p, rq);
-
+	//WET2 - short process should be treated differently
+	if(p->policy != SCHED_SHORT) {
+		activate_task(p, rq);
+	} else {
+		struct task_struct *father = p->p_pptr;
+		deactivate_task(father, rq);
+		activate_task(father, rq);
+		activate_task(p, rq);
+		if (current->reason_CS > 1) {
+			current->reason_CS = 1;
+		}
+		current->need_resched = 1;
+	}
+	//WET2 END
 	rq_unlock(rq);
 }
 
@@ -937,8 +944,8 @@ void scheduler_tick(int user_tick, int system)
 		if(p->policy!= SCHED_SHORT)
 			printk("SHOULD ENTER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
 
-		if(!p->is_SHORT_OVERDUE){
-			if(!--p->time_slice){
+		if(!p->is_SHORT_OVERDUE) {
+			if(!--p->time_slice) {
 				//if process should become SHORT_OVERDUE
 				if ((++p->number_of_trials_used > p->number_of_trials) ||
 					(!p->requested_time/p->number_of_trials_used)) {
@@ -976,7 +983,7 @@ void scheduler_tick(int user_tick, int system)
 
 					/* put it at the end of the queue: */
 					dequeue_task(p, rq->short_processes);
-					p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER
+					//p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER. if not this line should be removed
 					enqueue_task(p, rq->short_processes);
 				}
 			}
