@@ -519,18 +519,18 @@ void wake_up_forked_process(task_t * p)
 	}
 	p->cpu = smp_processor_id();
 	//WET2 - short process should be treated differently supposingly
-//	if(p->policy != SCHED_SHORT) {
+	if(p->policy != SCHED_SHORT) {
 		activate_task(p, rq);
-//	} else {
-//		struct task_struct *father = p->p_pptr;
-//		deactivate_task(father, rq);
-//		activate_task(father, rq);
-//		activate_task(p, rq);
-//		if (current->reason_CS > 1) {
-//			current->reason_CS = 1;
-//		}
-//		current->need_resched = 1;
-//	}
+	} else {
+		struct task_struct *father = p->p_pptr;
+		deactivate_task(father, rq);
+		activate_task(p, rq);
+		activate_task(father, rq);
+		if (current->reason_CS > 1) {
+			current->reason_CS = 1;
+		}
+		current->need_resched = 1;
+	}
 	//WET2 END
 	rq_unlock(rq);
 }
@@ -1062,7 +1062,7 @@ pick_next_task:
 
 	//WET2
 	if (only_SHORT_OVERDUE_processes_left(rq)) {
-		if((rq->short_processes->nr_active!= 0)||(rq->active->nr_active != 0)||(rq->expired->nr_active != 0)) //TODO remove this
+		//if((rq->short_processes->nr_active!= 0)||(rq->active->nr_active != 0)||(rq->expired->nr_active != 0)) //TODO remove this
 			printk("SHORT_OVERDUE WORKS BEFORE IT SHOULD!!!\n short: %d  active: %d  expired: %d  rq: %d\n",
 				   rq->short_processes->nr_active, rq->active->nr_active, rq->expired->nr_active, rq->nr_running);
 		if (rq->short_overdue_processes->nr_active > 0) {
@@ -1496,7 +1496,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		if (current->reason_CS > 6) {
 			current->reason_CS = 6;
 		}
-		set_tsk_need_resched(p);
+		set_tsk_need_resched(current);
 	}
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
