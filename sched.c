@@ -1823,12 +1823,22 @@ asmlinkage int sys_get_scheduling_statistic(struct switch_info* si){
 	int first = rq->first_statistics_index;//index of the oldest stat's
 	Switch_Info* buffer = rq->statistics_ring_buffer;
 	int fails;//number of bits not sent
-	if(rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1].time == -1){//if the ring buffer isn't full yet
+	if(rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1].next_pid == -1){//if the ring buffer isn't full yet
+		//WET2 TODO remove
+		printk("no 150 yet\n");
 		fails = copy_to_user(si, buffer, rq->write_statistics_last * sizeof(Switch_Info));
 		return rq->write_statistics_last - (fails/sizeof(Switch_Info));//how many were successfully copied
 	}else{
+		//WET2 TODO remove
+		printk("more than 150\n");
+		/*
+		int i;
+		for (i = 0; i < 150; ++i) {
+			printk("previous_pid: %5d   next_pid: %5d   previous_policy: %2d   next_policy: %2d   time: %10d   reason: %2d\n",
+				   buffer[i].previous_pid, buffer[i].next_pid, buffer[i].previous_policy, buffer[i].next_policy, buffer[i].time, buffer[i].reason);
+		}*/
 		fails = copy_to_user(si, &buffer[first], (STATISTICS_RING_BUFFER_SIZE - first) * sizeof(Switch_Info));
-		fails += copy_to_user(si + ((STATISTICS_RING_BUFFER_SIZE - first) * sizeof(Switch_Info)), buffer, first * sizeof(Switch_Info));
+		fails += copy_to_user(si + (STATISTICS_RING_BUFFER_SIZE - first), buffer, first * sizeof(Switch_Info));
 	}
 	return STATISTICS_RING_BUFFER_SIZE - (fails/sizeof(Switch_Info));//how many were successfully copied
 
@@ -1844,8 +1854,8 @@ void add_to_statistics_buffer(struct switch_info * si){
 	}
 	rq->switch_count++;//count switch
 	rq->statistics_ring_buffer[rq->write_statistics_last] = *si;//write to buffer
-
-	if((rq->write_statistics_last == rq->first_statistics_index)&&(rq->statistics_ring_buffer[0].time == -1)){//if we override the beginning (ring is full)
+	//printk("|%d|", rq->write_statistics_last);
+	if((rq->write_statistics_last == rq->first_statistics_index)&&(rq->statistics_ring_buffer[0].next_pid != -1)){//if we override the beginning (ring is full)
 		rq->first_statistics_index = (rq->first_statistics_index + 1) % STATISTICS_RING_BUFFER_SIZE;//first_index "points" to the next cell (current first)
 	}
 	rq->write_statistics_last = (rq->write_statistics_last + 1) % STATISTICS_RING_BUFFER_SIZE;//write_statistics_last(mod 150) "points" to the next cell for writing
@@ -2042,8 +2052,10 @@ void __init sched_init(void)
 		rq->first_statistics_index = 0;
 		rq->write_statistics_last = 0;
 		rq->switch_count = 0;
-		rq->statistics_ring_buffer[0].time = -1;
-		rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1].time = -1;
+		rq->statistics_ring_buffer[0].time = 0;
+		rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1].time = 0;
+		rq->statistics_ring_buffer[0].next_pid = -1;
+		rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1].next_pid = -1;
 		//WET2 CHANGE end
 	}
 	/*
