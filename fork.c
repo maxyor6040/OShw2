@@ -731,12 +731,8 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	 */
 	__save_flags(flags);
 	__cli();
-	if (!current->time_slice) {
-		//WET2 TODO remove
-		printk("-->Policy:%d CurrPolicy:%d PisOVERDUE:%d CurrisOverDUE:%d Ptime:%d Currtime:%d\n",
-		p->policy, p->is_SHORT_OVERDUE, current->is_SHORT_OVERDUE,  p->time_slice, current->time_slice);
+	if (!current->time_slice)
 		BUG();
-	}
 	//WET2 TODO remove
 	if ((current->policy != p->policy) || (p->is_SHORT_OVERDUE != current->is_SHORT_OVERDUE))
 		printk("THATS FUCKED UP the father differs from the son\n");
@@ -793,9 +789,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	
 	/* WET2 */ 
 	// "p" should be the "son" process, handling the case of a SHORT process (not overdue) 
-	if ((p->p_pptr->policy == SCHED_SHORT) &&
-		(!p->p_pptr->is_SHORT_OVERDUE)){
-
+	if ((p->p_pptr->policy == SCHED_SHORT) && (!p->p_pptr->is_SHORT_OVERDUE)) {
 		p->number_of_trials_used = 1;
 
 		int trials_left = p->p_pptr->number_of_trials - p->p_pptr->number_of_trials_used;

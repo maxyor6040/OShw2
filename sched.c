@@ -837,7 +837,6 @@ static inline void idle_tick(void)
 		(jiffies - (rq)->expired_timestamp >= \
 			STARVATION_LIMIT * ((rq)->nr_running) + 1))
 
-
 /*
  * This function gets called by the timer code, with HZ frequency.
  * We call it with interrupts disabled.
@@ -847,6 +846,7 @@ void scheduler_tick(int user_tick, int system)
 	int cpu = smp_processor_id();
 	runqueue_t *rq = this_rq();
 	task_t *p = current;
+
 /*
  * //TODO WET2 REMOVE THIS
 	int diff = jiffies - p->start_time;
@@ -941,21 +941,27 @@ void scheduler_tick(int user_tick, int system)
 		}
 	//WET2
 	} else { //if process is SHORT
-		//WET2 remove
+		//WET2 TODO remove
 		if(p->policy!= SCHED_SHORT)
-			printk("SHOULD ENTER HERE ONLY WITH SHORT/SHORT_OVERDUE!!!!!");
+			printk("SHOULD ENTER HERE ONLY WITH SHORT!!!!!");
 
 		if(!p->is_SHORT_OVERDUE) {
+			//WET2 TODO remove
+			if(p->time_slice < 0)
+				printk("NEGATIVE TIME! pid:%d policy:%d isOverDue:%d\n"
+						,p->pid, p->policy, p->is_SHORT_OVERDUE);
 			if(!--p->time_slice) {
-				//if process should become SHORT_OVERDUE
-				if ((++p->number_of_trials_used > p->number_of_trials) ||
-					(!p->requested_time/p->number_of_trials_used)) {
+				++(p->number_of_trials_used);
+				if ((p->number_of_trials_used > p->number_of_trials) ||
+					(!(p->requested_time/p->number_of_trials_used))) { //if process should become SHORT_OVERDUE
+
+					printk("%d became overdue\n", p->pid);//WET2 TODO remove
 
 					p->is_SHORT_OVERDUE = 1;
 					dequeue_task(p, rq->short_processes);
 					//WET2 CHANGE beginning
-					if (current->reason_CS > 7) {
-						current->reason_CS = 7;
+					if (current->reason_CS > 4) {
+						current->reason_CS = 4;
 					}
 					//WET2 CHANGE end
 					set_tsk_need_resched(p);
@@ -967,7 +973,8 @@ void scheduler_tick(int user_tick, int system)
 				} else { //if process remains SHORT
 					//Implemented RR for SCHED_SHORT
 					p->first_time_slice = 0;
-					//TODO REMOVE THIS
+
+					//WET2 TODO REMOVE THIS
 					if(!p->number_of_trials_used){
 						printk("ATTEMPT TO DIVIDE BY ZERO");
 						++p->number_of_trials_used;
@@ -976,15 +983,15 @@ void scheduler_tick(int user_tick, int system)
 					p->time_slice = p->requested_time / p->number_of_trials_used;
 
 					//WET2 CHANGE beginning
-					if (current->reason_CS > 4) {
-						current->reason_CS = 4;
+					if (current->reason_CS > 7) {
+						current->reason_CS = 7;
 					}
 					//WET2 CHANGE end
 					set_tsk_need_resched(p);
 
 					/* put it at the end of the queue: */
 					dequeue_task(p, rq->short_processes);
-					//p->prio = effective_prio(p); //TODO make sure the prio of SHORT should be calculated just like OTHER. if not this line should be removed
+					//p->prio = effective_prio(p); //WET2 TODO make sure the prio of SHORT should be calculated just like OTHER. if not this line should be removed
 					enqueue_task(p, rq->short_processes);
 				}
 			}
@@ -1061,21 +1068,12 @@ pick_next_task:
 	}
 
 	//WET2
-	if (only_SHORT_OVERDUE_processes_left(rq)) {
-		//if((rq->short_processes->nr_active!= 0)||(rq->active->nr_active != 0)||(rq->expired->nr_active != 0)) //TODO remove this
-			printk("SHORT_OVERDUE WORKS BEFORE IT SHOULD!!!\n short: %d  active: %d  expired: %d  rq: %d\n",
-				   rq->short_processes->nr_active, rq->active->nr_active, rq->expired->nr_active, rq->nr_running);
+	if (only_SHORT_OVERDUE_processes_left(rq)) { //or no processes left at all
 		if (rq->short_overdue_processes->nr_active > 0) {
 			idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
-			//TODO REMOVE THIS
-			if (idx != 0)
-				printk("WE FUCKED SOMETHING UP! SHORT_OVERDUE PRIO SHOULD BE 0!!!");
-
-			//in our implementation the idx should be the same number always - 0.
 			queue = rq->short_overdue_processes->queue + idx;
 			next = list_entry(queue->next, task_t, run_list);
-
-		goto switch_tasks;
+			goto switch_tasks;
 		}
 	}
 
@@ -1466,7 +1464,8 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if(lp.trial_num < 1 || lp.trial_num > 50)
 		goto out_unlock;
 	//WET2 - assuming when we change to SCHED_SHORT, the priority field is set to 0, just like in SCHED_OTHER
-	if (((policy == SCHED_SHORT) || (policy == SCHED_OTHER)) != (lp.sched_priority == 0))
+	if (((policy == SCHED_OTHER) != (lp.sched_priority == 0))
+		&& (policy != SCHED_SHORT))
 		goto out_unlock;
 
 	retval = -EPERM;
@@ -1491,6 +1490,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
 	if ((policy == SCHED_SHORT) && first_entrance) { //process becomes SHORT
+		p->is_SHORT_OVERDUE = 0;
 		p->number_of_trials_used = 1;
 		p->time_slice  = lp.requested_time;
 		if (current->reason_CS > 6) {
