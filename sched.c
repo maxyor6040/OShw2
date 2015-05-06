@@ -319,7 +319,8 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 		p->sleep_avg += sleep_time;
 		if (p->sleep_avg > MAX_SLEEP_AVG)
 			p->sleep_avg = MAX_SLEEP_AVG;
-		p->prio = effective_prio(p);
+		if(!p->policy == SCHED_SHORT) //WET2 TODO make sure that's right
+			p->prio = effective_prio(p);
 	}
 	enqueue_task(p, array);
 	rq->nr_running++;
@@ -1061,6 +1062,9 @@ pick_next_task:
 
 	//WET2
 	if (only_SHORT_OVERDUE_processes_left(rq)) {
+		if((rq->short_processes->nr_active!= 0)||(rq->active->nr_active != 0)||(rq->expired->nr_active != 0)) //TODO remove this
+			printk("SHORT_OVERDUE WORKS BEFORE IT SHOULD!!!\n short: %d  active: %d  expired: %d  rq: %d\n",
+				   rq->short_processes->nr_active, rq->active->nr_active, rq->expired->nr_active, rq->nr_running);
 		if (rq->short_overdue_processes->nr_active > 0) {
 			idx = sched_find_first_bit(rq->short_overdue_processes->bitmap);
 			//TODO REMOVE THIS
