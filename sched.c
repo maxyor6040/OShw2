@@ -951,9 +951,18 @@ void scheduler_tick(int user_tick, int system)
 				printk("NEGATIVE TIME! pid:%d policy:%d isOverDue:%d\n"
 						,p->pid, p->policy, p->is_SHORT_OVERDUE);
 			if(!--p->time_slice) {
-				++(p->number_of_trials_used);
+
+				//WET2 TODO remove
+				int before = p->number_of_trials_used;
+				++(p->number_of_trials_used); //~~~DONT REMOVE THIS!!!!~~~
+				int after = p->number_of_trials_used;
+				if(after!= before+1)
+					printk("WHAT THE FUCK IS GOING ON?!?!?!?!?");
+
+				int next_time_slice = p->requested_time/p->number_of_trials_used;
+				printk("next time slice:%d/%d=%d\n", p->requested_time, p->number_of_trials_used, next_time_slice);//WET2 TODO remove
 				if ((p->number_of_trials_used > p->number_of_trials) ||
-					(!(p->requested_time/p->number_of_trials_used))) { //if process should become SHORT_OVERDUE
+					(next_time_slice == 0)) { //if process should become SHORT_OVERDUE
 
 					printk("%d became overdue\n", p->pid);//WET2 TODO remove
 
@@ -1824,24 +1833,13 @@ asmlinkage int sys_get_scheduling_statistic(struct switch_info* si){
 	Switch_Info* buffer = rq->statistics_ring_buffer;
 	int fails;//number of bits not sent
 	if(rq->statistics_ring_buffer[STATISTICS_RING_BUFFER_SIZE-1].next_pid == -1){//if the ring buffer isn't full yet
-		//WET2 TODO remove
-		printk("no 150 yet\n");
 		fails = copy_to_user(si, buffer, rq->write_statistics_last * sizeof(Switch_Info));
 		return rq->write_statistics_last - (fails/sizeof(Switch_Info));//how many were successfully copied
 	}else{
-		//WET2 TODO remove
-		printk("more than 150\n");
-		/*
-		int i;
-		for (i = 0; i < 150; ++i) {
-			printk("previous_pid: %5d   next_pid: %5d   previous_policy: %2d   next_policy: %2d   time: %10d   reason: %2d\n",
-				   buffer[i].previous_pid, buffer[i].next_pid, buffer[i].previous_policy, buffer[i].next_policy, buffer[i].time, buffer[i].reason);
-		}*/
 		fails = copy_to_user(si, &buffer[first], (STATISTICS_RING_BUFFER_SIZE - first) * sizeof(Switch_Info));
 		fails += copy_to_user(si + (STATISTICS_RING_BUFFER_SIZE - first), buffer, first * sizeof(Switch_Info));
 	}
 	return STATISTICS_RING_BUFFER_SIZE - (fails/sizeof(Switch_Info));//how many were successfully copied
-
 }
 
 //enter statistics of new switch (if switch_count<30)
