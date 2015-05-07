@@ -737,18 +737,20 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	if ((current->policy != p->policy) || (p->is_SHORT_OVERDUE != current->is_SHORT_OVERDUE))
 		printk("THATS FUCKED UP the father differs from the son\n");
 
-	p->time_slice = (current->time_slice + 1) >> 1;
-	p->first_time_slice = 1;
-	current->time_slice >>= 1;
-	p->sleep_timestamp = jiffies;
-	if (!current->time_slice) {
-		/*
-		 * This case is rare, it happens when the parent has only
-		 * a single jiffy left from its timeslice. Taking the
-		 * runqueue lock is not a problem.
-		 */
-		current->time_slice = 1;
-		scheduler_tick(0,0);
+	if (!(current->policy == SCHED_SHORT && current->is_SHORT_OVERDUE)) {
+		p->time_slice = (current->time_slice + 1) >> 1;
+		p->first_time_slice = 1;
+		current->time_slice >>= 1;
+		p->sleep_timestamp = jiffies;
+		if (!current->time_slice) {
+			/*
+             * This case is rare, it happens when the parent has only
+             * a single jiffy left from its timeslice. Taking the
+             * runqueue lock is not a problem.
+             */
+			current->time_slice = 1;
+			scheduler_tick(0,0);
+		}
 	}
 	__restore_flags(flags);
 

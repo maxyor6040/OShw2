@@ -293,10 +293,10 @@ static inline void activate_task(task_t *p, runqueue_t *rq)
 	unsigned long sleep_time = jiffies - p->sleep_timestamp;
 	prio_array_t *array;
 	// WET 2
-	if (p->policy == SCHED_SHORT && !p->is_SHORT_OVERDUE){
+	if ((p->policy == SCHED_SHORT) && (!(p->is_SHORT_OVERDUE))){
 		array = rq->short_processes;
 	}
-	else if(p->is_SHORT_OVERDUE){
+	else if((p->policy == SCHED_SHORT) && (p->is_SHORT_OVERDUE)){
 		array = rq->short_overdue_processes;
 	}
 	else{
@@ -456,6 +456,7 @@ same_case:		if(!rq->curr->is_SHORT_OVERDUE)
 					else
 						goto dont_do_it;
 				}
+				goto dont_do_it;
 				break;
 			case SCHED_OTHER:
 				if((rq->curr->policy == SCHED_FIFO) ||
@@ -463,15 +464,17 @@ same_case:		if(!rq->curr->is_SHORT_OVERDUE)
 					(rq->curr->policy == SCHED_OTHER))
 					goto default_behaviour;
 				else if(!rq->curr->is_SHORT_OVERDUE)
-					goto do_it;
-				else
 					goto dont_do_it;
+				else
+					goto do_it;
 				break;
 			default:
+				printk("-->p: pid:%d policy:%d isSOD:%d| curr: pid:%d policy:%d isSOD:%d\n",
+				p->pid, p->policy, p->is_SHORT_OVERDUE, rq->curr->pid, rq->curr->policy, rq->curr->is_SHORT_OVERDUE);
 				goto dont_do_it;
 				break;
 		}
-//END WET2
+		//END WET2
 
 default_behaviour:
 		if (p->prio < rq->curr->prio) {
@@ -943,31 +946,16 @@ void scheduler_tick(int user_tick, int system)
 		}
 	//WET2
 	} else { //if process is SHORT
-		//WET2 TODO remove
-		if(p->policy!= SCHED_SHORT)
-			printk("SHOULD ENTER HERE ONLY WITH SHORT!!!!!");
-
 		if(!p->is_SHORT_OVERDUE) {
 			//WET2 TODO remove
 			if(p->time_slice < 0)
 				printk("NEGATIVE TIME! pid:%d policy:%d isOverDue:%d\n"
 						,p->pid, p->policy, p->is_SHORT_OVERDUE);
 			if(!--p->time_slice) {
-
-				//WET2 TODO remove
-				int before = p->number_of_trials_used;
-				++(p->number_of_trials_used); //~~~DONT REMOVE THIS!!!!~~~
-				int after = p->number_of_trials_used;
-				if(after!= before+1)
-					printk("WHAT THE FUCK IS GOING ON?!?!?!?!?");
-
+				++(p->number_of_trials_used);
 				int next_time_slice = p->requested_time/p->number_of_trials_used;
-				printk("next time slice:%d/%d=%d\n", p->requested_time, p->number_of_trials_used, next_time_slice);//WET2 TODO remove
 				if ((p->number_of_trials_used > p->number_of_trials) ||
 					(next_time_slice == 0)) { //if process should become SHORT_OVERDUE
-
-					printk("%d became overdue\n", p->pid);//WET2 TODO remove
-
 					p->is_SHORT_OVERDUE = 1;
 					dequeue_task(p, rq->short_processes);
 					//WET2 CHANGE beginning
@@ -1503,7 +1491,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((policy == SCHED_SHORT) && first_entrance) { //process becomes SHORT
 		p->is_SHORT_OVERDUE = 0;
 		p->number_of_trials_used = 1;
-		p->time_slice  = MSEC_TO_TICK(lp.requested_time);
+		p->time_slice  = (((lp.requested_time)*HZ)/1000);
 		if (current->reason_CS > 6) {
 			current->reason_CS = 6;
 		}
@@ -1817,8 +1805,7 @@ asmlinkage int sys_is_SHORT(int pid) {
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "time_slice"
 asmlinkage int sys_remaining_time(int pid){
 	int retval = check_is_SHORT_and_not_OVERDUE(pid);
-	//return ((retval==1) ? ((((find_process_by_pid(pid)->time_slice))*HZ)/1000) : (retval));
-	return ((retval==1) ? (TICK_TO_MSEC((find_process_by_pid(pid))->time_slice)) : (retval));
+	return ((retval==1) ? (((((find_process_by_pid(pid))->time_slice)*1000)/HZ)) : (retval));
 }
 
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "number_of_trials_used"
