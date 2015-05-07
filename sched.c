@@ -884,8 +884,10 @@ void scheduler_tick(int user_tick, int system)
 	}
 	spin_lock(&rq->lock);
 
+	//WET2
 	if(p->policy == SCHED_SHORT && p->is_SHORT_OVERDUE)
 		goto out;
+	//END WET2
 
 	if (unlikely(rt_task(p))) {
 		/*
@@ -1025,7 +1027,7 @@ static inline int only_SHORT_OVERDUE_processes_left(runqueue_t *rq)
 	return !(rq->nr_running - rq->short_overdue_processes->nr_active);
 }
 static inline int no_RT_processes(runqueue_t *rq)
-{return sched_find_first_bit(rq->active->bitmap) > MAX_RT_PRIO;}
+{return (sched_find_first_bit(rq->active->bitmap) >= MAX_RT_PRIO);}
 //END WET2
 
 /*
@@ -1501,7 +1503,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((policy == SCHED_SHORT) && first_entrance) { //process becomes SHORT
 		p->is_SHORT_OVERDUE = 0;
 		p->number_of_trials_used = 1;
-		p->time_slice  = lp.requested_time;
+		p->time_slice  = MSEC_TO_TICK(lp.requested_time);
 		if (current->reason_CS > 6) {
 			current->reason_CS = 6;
 		}
@@ -1815,7 +1817,8 @@ asmlinkage int sys_is_SHORT(int pid) {
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "time_slice"
 asmlinkage int sys_remaining_time(int pid){
 	int retval = check_is_SHORT_and_not_OVERDUE(pid);
-	return ((retval==1) ? ((((find_process_by_pid(pid)->time_slice))*HZ)/1000) : (retval));
+	//return ((retval==1) ? ((((find_process_by_pid(pid)->time_slice))*HZ)/1000) : (retval));
+	return ((retval==1) ? (TICK_TO_MSEC((find_process_by_pid(pid))->time_slice)) : (retval));
 }
 
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "number_of_trials_used"
