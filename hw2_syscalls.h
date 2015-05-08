@@ -3,6 +3,16 @@
 /* NOTE: for each of the following new system calls we should update the relevant data in
 entry.S, unistd.h and syscalls.h */ 
 
+struct switch_info
+{
+  int previous_pid;
+  int next_pid;
+  int previous_policy;
+  int next_policy;
+  unsigned long time;
+  int reason;
+};
+
 #include <errno.h>
 
 // is_SHORT wrapper

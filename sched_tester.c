@@ -10,6 +10,13 @@
 
 int fibonaci(int n); 
 
+struct sched_param{
+  int sched_priority;
+  int requested_time;
+  int trial_num;
+
+};
+
 // The main program 
 // Note that according to piaza we can assume that the number of args is valid 
 
@@ -17,6 +24,7 @@ int main(int argc, char** argv){
 	int num_of_processes = argc / 2;
 	int i=1;
 	pid_t father_pid = getpid();
+	printf ("Father pid is: %d/n" , father_pid);
 	for (; i <= num_of_processes ; i++){
 		struct sched_param* new_param = malloc (sizeof (*new_param));
 		// gets the fibonaci number for calculation of the ith process
@@ -26,22 +34,22 @@ int main(int argc, char** argv){
 		new_param->sched_priority = 0;
 		// Note: according to piazza we can choose whatever we want for requested_time.
 		// It is recommended to try a short period of time and a long one. 
-		new_param->requested_time = 100;		
+		new_param->requested_time = 4500;		
 		pid_t new_pid = fork();
-		// if its the father process now running
 		if (new_pid == 0) { //son
-			if(0!=sched_setscheduler(getpid(), 4, new_param)) //setting a SHORT policy
+			if(sched_setscheduler(getpid(), 4, new_param) != 0) //setting a SHORT policy
 			{
-				printf("FUCKDICKTURD");
+				printf("An error occured on setting the policy");
 				exit(1);
 			}
+			double k;
+			for (k=0;k<10000000 ;k=k+0.0000000001);
 			fibonaci(n);
 			exit(0);
 		}
 	}
-	if(getpid() == father_pid)
-		while (wait(NULL) != -1);
-
+	if(father_pid == getpid()) 
+		while (wait(0) != -1);
 	struct switch_info* si = malloc(150 * sizeof (*si));
 	get_scheduling_statistic(si); 
 	// printing the results' data 
