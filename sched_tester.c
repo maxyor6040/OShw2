@@ -30,20 +30,21 @@ int main(int argc, char** argv){
 		// gets the fibonaci number for calculation of the ith process
 		int n = atoi(argv[2*i]);		
 		// gets the number of trials of the ith process
-		new_param->trial_num = (int)*(argv[2 * i - 1]);
+		new_param->trial_num = atoi(argv[2 * i - 1]);
 		new_param->sched_priority = 0;
 		// Note: according to piazza we can choose whatever we want for requested_time.
 		// It is recommended to try a short period of time and a long one. 
-		new_param->requested_time = 4500;		
+		new_param->requested_time = 2000;		
 		pid_t new_pid = fork();
 		if (new_pid == 0) { //son
-			if(sched_setscheduler(getpid(), 4, new_param) != 0) //setting a SHORT policy
-			{
+			int retval = sched_setscheduler(getpid(), 4, new_param);
+			if( retval  != 0) 
+			  {
+			  printf ("retval is: %d\n",retval);
 				printf("An error occured on setting the policy");
 				exit(1);
 			}
-			double k;
-			for (k=0;k<10000000 ;k=k+0.0000000001);
+			sleep(1);
 			fibonaci(n);
 			exit(0);
 		}
