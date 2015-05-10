@@ -1573,7 +1573,8 @@ asmlinkage long sys_sched_getparam(pid_t pid, struct sched_param *param)
 	lp.sched_priority = p->rt_priority;
 	if (p->policy == SCHED_SHORT){
 		lp.requested_time = p->requested_time;
-		lp.trial_num = p->number_of_trials; 
+		lp.trial_num = p->number_of_trials;
+		lp.sched_priority = 0;
 	}
 	read_unlock(&tasklist_lock);
 
