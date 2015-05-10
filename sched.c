@@ -1471,10 +1471,6 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
-	/* WET2 - VALID POLICY CHANGES CONDITIONS */
-	// if the relevant process' policy is SCHED_SHORT we can't change it
-	if (p->policy == SCHED_SHORT)
-		goto out_unlock;
 	// if we're trying to change the policy to short from anything else than OTHER, it's wrong
 	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER)
 		goto out_unlock;
@@ -1490,6 +1486,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		p->number_of_trials_used = 1;
 		p->time_slice  = (((lp.requested_time)*HZ)/1000);
 		p->number_of_trials	= lp.trial_num; //says in instrctions it can't be updated
+		//WET2 TODO remove
 		if(p->time_slice < 1)
 			printk("SCHEDULER DOESNT GET CORRECT INPUT!\n");
 		if (current->reason_CS > 6) {
@@ -1498,6 +1495,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		set_tsk_need_resched(current);
 	}
 	p->rt_priority = lp.sched_priority;
+
 	p->requested_time = lp.requested_time;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
