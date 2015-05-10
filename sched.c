@@ -971,6 +971,7 @@ void scheduler_tick(int user_tick, int system)
 					p->prio = 0; //MUST BE before enqueue_task, because that's how it goes to list_t with prio 0.
 					p->first_time_slice = 0;
 					p->time_slice = 10; //just 'cause we don't use time_slice in SHORT_OVERDUE
+					p->number_of_trials = 0;
 					enqueue_task(p, rq->short_overdue_processes);
 
 				} else { //if process remains SHORT
