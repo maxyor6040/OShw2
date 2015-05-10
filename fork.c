@@ -741,7 +741,7 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		current->time_slice >>= 1;
 		//WET2 TODO remove
 		if (current->time_slice < 0 || p->time_slice < 0)
-			printk("the fork may befucking the time");
+			printk("the fork may be fucking the time\n");
 		p->sleep_timestamp = jiffies;
 		if (!current->time_slice) {
 			/*

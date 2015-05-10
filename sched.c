@@ -550,7 +550,8 @@ void wake_up_forked_process(task_t * p)
 void sched_exit(task_t * p)
 {
 	__cli();
-	if (p->first_time_slice) {
+	//WET2 if statement altered
+	if (p->first_time_slice && !p->is_SHORT_OVERDUE) {
 		current->time_slice += p->time_slice;
 		if (unlikely(current->time_slice > MAX_TIMESLICE))
 			current->time_slice = MAX_TIMESLICE;
@@ -950,7 +951,13 @@ void scheduler_tick(int user_tick, int system)
 						,p->pid, p->policy, p->is_SHORT_OVERDUE);
 			if(!--p->time_slice) {
 				++(p->number_of_trials_used);
+				//WET2 TODO REMOVE THIS
+				if(!p->number_of_trials_used){
+					printk("ATTEMPT TO DIVIDE BY ZERO\n");
+					++p->number_of_trials_used;
+				}
 				int next_time_slice = p->requested_time/p->number_of_trials_used;
+				if(next_time_slice < 0 ) printk("THE TIME SLICE IS NEGATIVE IN SCHEDULER_TICK!\n"); //WET2 TODO remove
 				if ((p->number_of_trials_used > p->number_of_trials) ||
 					(next_time_slice == 0)) { //if process should become SHORT_OVERDUE
 					p->is_SHORT_OVERDUE = 1;
@@ -969,14 +976,7 @@ void scheduler_tick(int user_tick, int system)
 				} else { //if process remains SHORT
 					//Implemented RR for SCHED_SHORT
 					p->first_time_slice = 0;
-
-					//WET2 TODO REMOVE THIS
-					if(!p->number_of_trials_used){
-						printk("ATTEMPT TO DIVIDE BY ZERO");
-						++p->number_of_trials_used;
-					}
-
-					p->time_slice = p->requested_time / p->number_of_trials_used;
+					p->time_slice = next_time_slice;
 
 					//WET2 CHANGE beginning
 					if (current->reason_CS > 7) {
@@ -1438,8 +1438,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if (policy < 0) {
 		policy = p->policy;
 		first_entrance = 0; 
-		}
-	else {
+	} else {
 		retval = -EINVAL;
 	/* WET2 - added SCHED_SHORT to the condition */
 		if (policy != SCHED_FIFO && policy != SCHED_RR &&
@@ -1453,7 +1452,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 * 1..MAX_USER_RT_PRIO-1, valid priority for SCHED_OTHER is 0.
 	 */
 	retval = -EINVAL;
-	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1)
+	if ((lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1) && (policy != SCHED_SHORT))
 		goto out_unlock;
 	printk("~A~");//WET2 TODO remove
 	//WET2
@@ -1570,6 +1569,7 @@ asmlinkage long sys_sched_getparam(pid_t pid, struct sched_param *param)
 	retval = -ESRCH;
 	if (!p)
 		goto out_unlock;
+	//WET2
 	lp.sched_priority = p->rt_priority;
 	if (p->policy == SCHED_SHORT){
 		lp.requested_time = p->requested_time;
