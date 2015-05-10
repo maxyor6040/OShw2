@@ -733,14 +733,15 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 	__cli();
 	if (!current->time_slice)
 		BUG();
-	//WET2 TODO remove
-	if ((current->policy != p->policy) || (p->is_SHORT_OVERDUE != current->is_SHORT_OVERDUE))
-		printk("THATS FUCKED UP the father differs from the son\n");
 
+	//WET2 if statement
 	if (!(current->policy == SCHED_SHORT && current->is_SHORT_OVERDUE)) {
 		p->time_slice = (current->time_slice + 1) >> 1;
 		p->first_time_slice = 1;
 		current->time_slice >>= 1;
+		//WET2 TODO remove
+		if (current->time_slice < 0 || p->time_slice < 0)
+			printk("the fork may befucking the time");
 		p->sleep_timestamp = jiffies;
 		if (!current->time_slice) {
 			/*
@@ -751,6 +752,11 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 			current->time_slice = 1;
 			scheduler_tick(0,0);
 		}
+	} else {
+		//WET2 TODO remove
+		if(p->time_slice != 10)
+			printk("&&&&&&&that's odd. we initialize overdue to 10&&&&&&\n");
+		p->time_slice = 10;
 	}
 	__restore_flags(flags);
 

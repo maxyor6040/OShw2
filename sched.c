@@ -849,15 +849,6 @@ void scheduler_tick(int user_tick, int system)
 	int cpu = smp_processor_id();
 	runqueue_t *rq = this_rq();
 	task_t *p = current;
-
-/*
- * //TODO WET2 REMOVE THIS
-	int diff = jiffies - p->start_time;
-	if(rq->short_processes->nr_active || rq->short_overdue_processes->nr_active)
-		printk("->lifespan: %d, policy: %d, pid: %d,  short_count: %d, overdue_count: %d \n trials: %d trials used: %d \n",
-			   diff, p->policy, p->pid, rq->short_processes->nr_active,
-			   rq->short_overdue_processes->nr_active, p->number_of_trials, p->number_of_trials_used);
-*/
 	if (p == rq->idle) {
 		if (local_bh_count(cpu) || local_irq_count(cpu) > 1)
 			kstat.per_cpu_system[cpu] += system;
@@ -871,6 +862,11 @@ void scheduler_tick(int user_tick, int system)
 	else
 		kstat.per_cpu_user[cpu] += user_tick;
 	kstat.per_cpu_system[cpu] += system;
+
+	//WET2 TODO remove
+	if(p->time_slice < 0)
+		printk("NEGATIVE TIME! pid:%d policy:%d isOverDue:%d\n"
+				,p->pid, p->policy, p->is_SHORT_OVERDUE);
 
 	//WET2 if extended
 	/* Task might have expired already, but not scheduled off yet */
@@ -924,7 +920,7 @@ void scheduler_tick(int user_tick, int system)
 	if (p->sleep_avg)
 		p->sleep_avg--;
 	//WET2 if statement
-	if(p->policy != SCHED_SHORT) { //if process isn't SHORT
+	if (p->policy != SCHED_SHORT) { //if process isn't SHORT
 		if (!--p->time_slice) {
 			dequeue_task(p, rq->active);
             //WET2 CHANGE beginning
@@ -946,6 +942,7 @@ void scheduler_tick(int user_tick, int system)
 		}
 	//WET2
 	} else { //if process is SHORT
+
 		if(!p->is_SHORT_OVERDUE) {
 			//WET2 TODO remove
 			if(p->time_slice < 0)
@@ -1409,7 +1406,7 @@ static inline task_t *find_process_by_pid(pid_t pid)
 
 static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 {
-	printk("~1~\n");//WET2 TODO remove
+	printk("~1~");//WET2 TODO remove
 	struct sched_param lp;
 	int retval = -EINVAL;
 	prio_array_t *array;
@@ -1426,7 +1423,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 * We play safe to avoid deadlocks.
 	 */
 	read_lock_irq(&tasklist_lock);
-	printk("~2~\n");//WET2 TODO remove
+	printk("~2~");//WET2 TODO remove
 	p = find_process_by_pid(pid);
 
 	retval = -ESRCH;
@@ -1450,7 +1447,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 			goto out_unlock;
 	}
 	/* END OF WET2 */
-	printk("~3~\n");//WET2 TODO remove
+	printk("~3~");//WET2 TODO remove
 	/*
 	 * Valid priorities for SCHED_FIFO and SCHED_RR are
 	 * 1..MAX_USER_RT_PRIO-1, valid priority for SCHED_OTHER is 0.
@@ -1458,19 +1455,22 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	retval = -EINVAL;
 	if (lp.sched_priority < 0 || lp.sched_priority > MAX_USER_RT_PRIO-1)
 		goto out_unlock;
-	printk("~A~\n");//WET2 TODO remove
+	printk("~A~");//WET2 TODO remove
 	//WET2
-	if(lp.requested_time < 0 || lp.requested_time > 5000)
-		goto out_unlock;
-	printk("~B~\n");//WET2 TODO remove
-	if(lp.trial_num < 1 || lp.trial_num > 50)
-		goto out_unlock;
-	printk("~4~\n");//WET2 TODO remove
+	if(policy == SCHED_SHORT)
+	{
+		if(lp.requested_time < 0 || lp.requested_time > 5000)
+			goto out_unlock;
+		printk("~B~");//WET2 TODO remove
+		if(lp.trial_num < 1 || lp.trial_num > 50)
+			goto out_unlock;
+	}
+	printk("~4~");//WET2 TODO remove
 	//WET2 - assuming when we change to SCHED_SHORT, the priority field is set to 0, just like in SCHED_OTHER
 	if (((policy == SCHED_OTHER) != (lp.sched_priority == 0))
 		&& (policy != SCHED_SHORT))
 		goto out_unlock;
-	printk("~5~\n");//WET2 TODO remove
+	printk("~5~");//WET2 TODO remove
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
@@ -1478,7 +1478,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
-	printk("~6~\n");//WET2 TODO remove
+	printk("~6~");//WET2 TODO remove
 	/* WET2 - VALID POLICY CHANGES CONDITIONS */
 	// if the relevant process' policy is SCHED_SHORT we can't change it
 	if (p->policy == SCHED_SHORT)
@@ -1487,7 +1487,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER)
 		goto out_unlock;
 	/* END OF WET2 */
-	printk("~7~\n");//WET2 TODO remove
+	printk("~7~");//WET2 TODO remove
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
@@ -1498,6 +1498,10 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 		p->is_SHORT_OVERDUE = 0;
 		p->number_of_trials_used = 1;
 		p->time_slice  = (((lp.requested_time)*HZ)/1000);
+		p->number_of_trials	= lp.trial_num; //says in instrctions it can't be updated
+		//WET2 TODO remove
+		if(p->time_slice < 1)
+			printk("SCHEDULER DOESNT GET CORRECT INPUT!\n");
 		if (current->reason_CS > 6) {
 			current->reason_CS = 6;
 		}
@@ -1505,7 +1509,6 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	}
 	p->rt_priority = lp.sched_priority;
 	p->requested_time = lp.requested_time;
-	p->number_of_trials	= lp.trial_num;
 	if (policy != SCHED_OTHER && policy != SCHED_SHORT)
 		p->prio = MAX_USER_RT_PRIO-1 - p->rt_priority;
 	/* END OF WET2 */
@@ -1792,13 +1795,15 @@ inline int check_is_SHORT_and_not_OVERDUE(int pid){
 	p = find_process_by_pid(pid);
 
 	if (!p) {//if no such process
+		printk("~?~");//WET2 TODO REMOVE
 		return -ESRCH;
 	}
 	if (p->policy != SCHED_SHORT) {//if not SHORT
-		printk("\n##### the current policy is: %d #####\n",p->policy);
+		printk("~NOT SHORT~");//WET2 TODO REMOVE
 		return -EINVAL;
 	}
 	if (p->is_SHORT_OVERDUE) {//if OVERDUE
+		printk("~OVERDUE~");//WET2 TODO REMOVE
 		return 0;
 	}
 	return 1;//SHORT but not OVERDUE
@@ -1812,8 +1817,7 @@ asmlinkage int sys_is_SHORT(int pid) {
 //same as check_is_SHORT_and_not_OVERDUE except if SHORT but not OVERDUE return "time_slice"
 asmlinkage int sys_remaining_time(int pid){
 	int retval = check_is_SHORT_and_not_OVERDUE(pid);
-	printk("\n<<<<retval:%d>>>>\n",retval);
-	printk("\n~~~time slice: %d ~~~~~~~~~~ time slice with macro: %d~~~\n", (find_process_by_pid(pid))->time_slice,(((((find_process_by_pid(pid))->time_slice)*1000)/HZ)));
+	printk("\n|-->time:%d<--|\n", ((((find_process_by_pid(pid))->time_slice)*1000)/HZ));//WET2 TODO REMOVE
 	return ((retval==1) ? (((((find_process_by_pid(pid))->time_slice)*1000)/HZ)) : (retval));
 }
 
