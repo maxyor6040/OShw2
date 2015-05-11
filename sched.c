@@ -1415,7 +1415,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	task_t *p;
 	if (!param || pid < 0)
 		goto out_nounlock;
-
+	printk("-1");//WET2 TODO remove
 	retval = -EFAULT;
 	if (copy_from_user(&lp, param, sizeof(struct sched_param)))
 		goto out_nounlock;
@@ -1424,7 +1424,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	 */
 	read_lock_irq(&tasklist_lock);
 	p = find_process_by_pid(pid);
-
+	printk("-2");//WET2 TODO remove
 	retval = -ESRCH;
 	if (!p)
 		goto out_unlock_tasklist;
@@ -1444,6 +1444,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 				policy != SCHED_OTHER && policy != SCHED_SHORT)
 			goto out_unlock;
 	}
+	printk("-3");//WET2 TODO remove
 	/* END OF WET2 */
 	/*
 	 * Valid priorities for SCHED_FIFO and SCHED_RR are
@@ -1455,26 +1456,31 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	//WET2
 	if(policy == SCHED_SHORT)
 	{
-		if(lp.requested_time < 0 || lp.requested_time > 5000)
+		if(lp.requested_time < 1 || lp.requested_time > 5000)
 			goto out_unlock;
 		if(lp.trial_num < 1 || lp.trial_num > 50)
 			goto out_unlock;
 	}
+	printk("-4");//WET2 TODO remove
 	//WET2 - assuming when we change to SCHED_SHORT, the priority field is set to 0, just like in SCHED_OTHER
 	if (((policy == SCHED_OTHER) != (lp.sched_priority == 0))
 		&& (policy != SCHED_SHORT))
 		goto out_unlock;
+	printk("-4.1");//WET2 TODO remove
 	retval = -EPERM;
 	if ((policy == SCHED_FIFO || policy == SCHED_RR) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
+	printk("-4.2");//WET2 TODO remove
 	if ((current->euid != p->euid) && (current->euid != p->uid) &&
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
+	printk("-4.3");//WET2 TODO remove
 	// if we're trying to change the policy to short from anything else than OTHER, it's wrong
-	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER)
+	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER && first_entrance)
 		goto out_unlock;
 	/* END OF WET2 */
+	printk("-5-\n");//WET2 TODO remove
 	array = p->array;
 	if (array)
 		deactivate_task(p, task_rq(p));
