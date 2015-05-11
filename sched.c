@@ -431,8 +431,10 @@ repeat_lock_task:
 		 */
 
 		//WET2
-		if(rq->curr == rq->idle)
+		if(rq->curr == rq->idle) {
 			goto default_behaviour;
+			printk("#################");
+		}
 		if ((rq->curr->policy != SCHED_SHORT) && (p->policy != SCHED_SHORT))
 			goto default_behaviour;
 
@@ -1050,35 +1052,6 @@ need_resched:
 	case TASK_RUNNING:
 		;
 	}
-#if CONFIG_SMP
-pick_next_task:
-#endif
-	//WET2 TODO remove
-	if((rq->nr_running) &&
-		(!rq->active->nr_active) &&
-		(!rq->expired->nr_active) &&
-		(!rq->short_processes->nr_active) &&
-		(!rq->short_overdue_processes->nr_active))
-		printk("\n~1ITS NOT COUNTING RIGHT!~\n");
-	if(rq->nr_running -
-	   rq->active->nr_active -
-	   rq->expired->nr_active -
-	   rq->short_processes->nr_active -
-	   rq->short_overdue_processes->nr_active != 0)
-		printk("\n~2ITS NOT COUNTING RIGHT!~\n");
-
-
-	if (unlikely(!rq->nr_running)) {
-#if CONFIG_SMP
-		load_balance(rq, 1);
-		if (rq->nr_running)
-			goto pick_next_task;
-#endif
-		next = rq->idle;
-		rq->expired_timestamp = 0;
-		goto switch_tasks;
-	}
-
 	//WET2
 	if (only_SHORT_OVERDUE_processes_left(rq)) { //or no processes left at all
 		if (rq->short_overdue_processes->nr_active > 0) {
@@ -1099,7 +1072,19 @@ pick_next_task:
 		}
 	}
 	//END WET2
-
+#if CONFIG_SMP
+pick_next_task:
+#endif
+	if (unlikely(!rq->nr_running)) {
+#if CONFIG_SMP
+		load_balance(rq, 1);
+		if (rq->nr_running)
+			goto pick_next_task;
+#endif
+		next = rq->idle;
+		rq->expired_timestamp = 0;
+		goto switch_tasks;
+	}
 	array = rq->active;
 	if (unlikely(!array->nr_active)) {
 		/*
@@ -1485,7 +1470,7 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	    !capable(CAP_SYS_NICE))
 		goto out_unlock;
 	// if we're trying to change the policy to short from anything else than OTHER, it's wrong
-	if (policy == SCHED_SHORT && p->policy != SCHED_OTHER && first_entrance)
+	if ((policy == SCHED_SHORT) && (p->policy != SCHED_OTHER) && (first_entrance == 1))
 		goto out_unlock;
 	/* END OF WET2 */
 	array = p->array;
@@ -1494,14 +1479,11 @@ static int setscheduler(pid_t pid, int policy, struct sched_param *param)
 	retval = 0;
 	p->policy = policy;
 	/* WET2 - if this is a short process update the relevant array and time slice */
-	if ((policy == SCHED_SHORT) && first_entrance) { //process becomes SHORT
+	if ((policy == SCHED_SHORT) && (first_entrance == 1)) { //process becomes SHORT
 		p->is_SHORT_OVERDUE = 0;
 		p->number_of_trials_used = 1;
 		p->time_slice  = (((lp.requested_time)*HZ)/1000);
-		p->number_of_trials	= lp.trial_num; //says in instrctions it can't be updated
-		//WET2 TODO remove
-		if(p->time_slice < 1)
-			printk("SCHEDULER DOESNT GET CORRECT INPUT!\n");
+		p->number_of_trials	= lp.trial_num; //says in instructions it can't be updated
 		if (current->reason_CS > 6) {
 			current->reason_CS = 6;
 		}
