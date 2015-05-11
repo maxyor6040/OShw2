@@ -1053,6 +1053,21 @@ need_resched:
 #if CONFIG_SMP
 pick_next_task:
 #endif
+	//WET2 TODO remove
+	if((rq->nr_running) &&
+		(!rq->active->nr_active) &&
+		(!rq->expired->nr_active) &&
+		(!rq->short_processes->nr_active) &&
+		(!rq->short_overdue_processes->nr_active))
+		printk("\n~1ITS NOT COUNTING RIGHT!~\n");
+	if(rq->nr_running -
+	   rq->active->nr_active -
+	   rq->expired->nr_active -
+	   rq->short_processes->nr_active -
+	   rq->short_overdue_processes->nr_active != 0)
+		printk("\n~2ITS NOT COUNTING RIGHT!~\n");
+
+
 	if (unlikely(!rq->nr_running)) {
 #if CONFIG_SMP
 		load_balance(rq, 1);
