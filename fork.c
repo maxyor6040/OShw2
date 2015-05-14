@@ -739,9 +739,6 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 		p->time_slice = (current->time_slice + 1) >> 1;
 		p->first_time_slice = 1;
 		current->time_slice >>= 1;
-		//WET2 TODO remove
-		if (current->time_slice < 0 || p->time_slice < 0)
-			printk("the fork may be fucking the time\n");
 		p->sleep_timestamp = jiffies;
 		if (!current->time_slice) {
 			/*
@@ -753,9 +750,6 @@ int do_fork(unsigned long clone_flags, unsigned long stack_start,
 			scheduler_tick(0,0);
 		}
 	} else {
-		//WET2 TODO remove
-		if(p->time_slice != 10)
-			printk("&&&&&&&that's odd. we initialize overdue to 10&&&&&&\n");
 		p->time_slice = 10;
 	}
 	__restore_flags(flags);
